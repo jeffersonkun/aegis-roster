@@ -113,7 +113,7 @@ function renderAnalytics(){
 }
 function renderAll(){renderOverview();renderRoster();renderMatches();renderTournaments();renderAnalytics()}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-let supabaseClient=null, currentUser=null, currentProfile=null, canEditMembers=false;
+let supabaseClient=null, currentUser=null, currentProfile=null, canEditMembers=false, recoveryMode=false;
 const roleLabels={commander:"Командир",officer:"Офицер",viewer:"Просмотр"};
 function showAuth(show){const screen=$("#auth-screen");if(screen)screen.hidden=!show;document.querySelector(".app-shell").style.display=show?"none":"";}
 function authMessage(message,success=false){const el=$("#auth-message");if(el){el.textContent=message;el.classList.toggle("success",success)}}
@@ -126,7 +126,19 @@ async function initializeApp(){
   if(!configReady()){showAuth(true);authMessage("Сначала заполните config.js значениями Project URL и Publishable key из Supabase.");$("#auth-submit").disabled=true;return;}
   if(!window.supabase?.createClient){showAuth(true);authMessage("Не удалось загрузить библиотеку Supabase. Обновите страницу или проверьте подключение к CDN.");return;}
   supabaseClient=window.supabase.createClient(window.AEGIS_SUPABASE_URL,window.AEGIS_SUPABASE_KEY);
+  supabaseClient.auth.onAuthStateChange((event) => {
+    if(event === "PASSWORD_RECOVERY") {
+      recoveryMode=true;
+      showAuth(true);
+      $("#auth-form").hidden=true;
+      $("#recovery-form").hidden=false;
+      $("#recovery-message").textContent="";
+    }
+  });
   const {data:{session},error}=await supabaseClient.auth.getSession();if(error){showAuth(true);authMessage("Ошибка авторизации: "+error.message);return;}
+  if(recoveryMode || location.hash.includes("type=recovery") || new URLSearchParams(location.search).get("type")==="recovery") {
+    recoveryMode=true;showAuth(true);$("#auth-form").hidden=true;$("#recovery-form").hidden=false;return;
+  }
   if(!session){showAuth(true);return;}
   await finishLogin(session.user);
 }
@@ -148,6 +160,32 @@ $("#auth-form").addEventListener("submit",async ev=>{ev.preventDefault();if(!sup
  catch(err){authMessage("Не удалось войти: "+(err.message||err));}
  finally{button.disabled=false;button.textContent="Войти";}
 });
+$("#forgot-password-btn").addEventListener("click",async()=>{
+  if(!supabaseClient){if(configReady()&&window.supabase?.createClient)supabaseClient=window.supabase.createClient(window.AEGIS_SUPABASE_URL,window.AEGIS_SUPABASE_KEY);else{authMessage("Не настроено подключение к Supabase.");return;}}
+  const email=$("#auth-email").value.trim();
+  if(!email){authMessage("Сначала укажи электронную почту в поле выше.");$("#auth-email").focus();return;}
+  const btn=$("#forgot-password-btn");btn.disabled=true;authMessage("");
+  try{
+    const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+    if(error)throw error;
+    authMessage("Если адрес зарегистрирован, письмо для восстановления отправлено. Проверь входящие и папку «Спам».",true);
+  }catch(err){authMessage("Не удалось отправить письмо: "+(err.message||err));}
+  finally{btn.disabled=false;}
+});
+$("#recovery-form").addEventListener("submit",async ev=>{
+  ev.preventDefault();
+  const password=$("#new-password").value, confirm=$("#new-password-confirm").value;
+  if(password.length<8){$("#recovery-message").textContent="Пароль должен содержать не менее 8 символов.";return;}
+  if(password!==confirm){$("#recovery-message").textContent="Пароли не совпадают.";return;}
+  const btn=$("#recovery-submit");btn.disabled=true;btn.textContent="Сохраняем…";$("#recovery-message").textContent="";
+  try{
+    const {error}=await supabaseClient.auth.updateUser({password});if(error)throw error;
+    await supabaseClient.auth.signOut();recoveryMode=false;$("#recovery-form").hidden=true;$("#auth-form").hidden=false;$("#auth-password").value=password;authMessage("Пароль изменён. Теперь войди с новым паролем.",true);
+    history.replaceState({},document.title,window.location.pathname);
+  }catch(err){$("#recovery-message").textContent="Не удалось изменить пароль: "+(err.message||err);}
+  finally{btn.disabled=false;btn.textContent="Сохранить новый пароль";}
+});
+
 $("#sign-out-btn").addEventListener("click",async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentProfile=null;canEditMembers=false;state.members=[];showAuth(true);authMessage("Вы вышли из системы.",true);});
 
 const backdrop=$("#modal-backdrop"),fields=$("#modal-fields"),form=$("#modal-form");let modalMode="",editingId=null;

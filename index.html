@@ -17,7 +17,18 @@
     <label for="auth-email">Электронная почта</label><input id="auth-email" type="email" autocomplete="username" required placeholder="officer@example.com">
     <label for="auth-password">Пароль</label><input id="auth-password" type="password" autocomplete="current-password" required placeholder="Пароль Supabase">
     <button class="primary-btn full" id="auth-submit" type="submit">Войти</button>
+    <button class="auth-link" id="forgot-password-btn" type="button">Забыли пароль?</button>
     <p id="auth-message" class="auth-message" role="status"></p>
+  </form>
+  <form id="recovery-form" class="auth-card" hidden>
+    <div class="brand-mark auth-mark">A<span>·</span></div>
+    <div class="eyebrow">WARDOGS / AEGIS</div>
+    <h1>Новый пароль<span class="accent">.</span></h1>
+    <p class="muted">Придумайте новый пароль для своей учётной записи.</p>
+    <label for="new-password">Новый пароль</label><input id="new-password" type="password" autocomplete="new-password" minlength="8" required placeholder="Не менее 8 символов">
+    <label for="new-password-confirm">Повторите новый пароль</label><input id="new-password-confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Повторите пароль">
+    <button class="primary-btn full" id="recovery-submit" type="submit">Сохранить новый пароль</button>
+    <p id="recovery-message" class="auth-message" role="status"></p>
   </form>
 </div>
 <div class="app-shell">
