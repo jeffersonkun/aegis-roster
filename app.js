@@ -45,8 +45,8 @@ let state;
 function load(){try{const s=localStorage.getItem("wardogs-mvp-state-v1");state=s?JSON.parse(s):structuredClone(seed)}catch(e){state=structuredClone(seed)};state.members=(state.members||[]).map(m=>{const oldSquad=m.squad||"";const migratedSquad=!m.role&&oldSquad.includes("/")?oldSquad.split("/").slice(1).join("/").trim():(!m.role&&["Командование","Резерв","Новичок","Без подразделения"].includes(oldSquad)?"":oldSquad);return {...m,squad:migratedSquad,role:memberRole(m),leadership:memberLeadership(m)}});}
 function save(){localStorage.setItem("wardogs-mvp-state-v1",JSON.stringify(state));renderAll()}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}
-const statusNames={active:"Активен",probation:"Испытательный срок",inactive:"Неактивен",reserve:"Резерв"};
-const statusClass={active:"",probation:"probation",inactive:"inactive",reserve:"reserve"};
+const statusNames={active:"Активен",probation:"Испытательный срок",inactive:"Неактивен",reserve:"Резерв",vacation:"Отпуск"};
+const statusClass={active:"",probation:"probation",inactive:"inactive",reserve:"reserve",vacation:"vacation"};
 const dateLabel=d=>{if(!d)return"—";let dt=new Date(d+"T12:00:00");return dt.toLocaleDateString("ru-RU",{day:"2-digit",month:"short"}).replace(".","").toUpperCase()};
 const fullDate=d=>d?new Date(d+"T12:00:00").toLocaleDateString("ru-RU",{day:"2-digit",month:"long",year:"numeric"}):"—";
 const initials=s=>(s||"?").split(/[\s_-]+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase();
@@ -89,7 +89,7 @@ function renderRoster(){
  const q=$("#member-search").value.toLowerCase(),f=$("#member-status-filter").value,rf=$("#member-role-filter").value,lf=$("#member-leadership-filter").value;
  const arr=state.members.filter(m=>(m.nick+" "+m.discord+" "+(m.steam||"")+" "+m.squad+" "+memberRole(m)+" "+memberLeadership(m)+" "+(m.commandRole||"")).toLowerCase().includes(q)&&(f==="all"||m.status===f)&&(rf==="all"||memberRole(m)===rf)&&(lf==="all"||(lf==="none"?!memberLeadership(m):memberLeadership(m)===lf))).sort((a,b)=>a.nick.localeCompare(b.nick));
  $("#member-result-count").textContent=`${arr.length} игроков`;
- $("#members-table").innerHTML=arr.map(m=>{const appointments=[m.commandRole,memberLeadership(m)].filter(Boolean).join(" · ");return `<tr><td><div class="player-cell"><div class="player-avatar">${esc(initials(m.nick))}</div><div><b>${esc(m.nick)}</b><small>${m.discord?`Discord ID: ${esc(m.discord)}`:"Discord не привязан"}${m.steam?` · Steam ID: ${esc(m.steam)}`:""}</small></div></div></td><td><span class="status-pill ${statusClass[m.status]||""}">${statusNames[m.status]||m.status}</span></td><td><span class="role-pill ${m.roleProvisional?"provisional":""}">${esc(memberRole(m))}${m.roleProvisional?" · предварительная":""}</span></td><td>${appointments?`<span class="leadership-pill">${esc(appointments)}</span>`:`<span class="muted-cell">—</span>`}</td><td>${esc(m.squad||"—")}</td><td>${fullDate(m.last)}</td><td><button class="row-action" data-edit-member="${m.id}">Изменить ↗</button></td></tr>`}).join("")||`<tr><td colspan="7" class="empty-state">Игроки не найдены</td></tr>`;
+ $("#members-table").innerHTML=arr.map(m=>{const appointments=[m.commandRole,memberLeadership(m)].filter(Boolean).join(" · ");return `<tr><td><div class="player-cell"><div class="player-avatar">${esc(initials(m.nick))}</div><div><b>${esc(m.nick)}</b><small>${m.discord?`Discord ID: ${esc(m.discord)}`:"Discord не привязан"}${m.steam?` · Steam ID: ${esc(m.steam)}`:""}</small></div></div></td><td><span class="status-pill ${statusClass[m.status]||""}">${statusNames[m.status]||m.status}</span></td><td><span class="role-pill ${m.roleProvisional?"provisional":""}">${esc(memberRole(m))}${m.roleProvisional?" · предварительная":""}</span></td><td>${appointments?`<span class="leadership-pill">${esc(appointments)}</span>`:`<span class="muted-cell">—</span>`}</td><td>${esc(m.squad||"—")}</td><td>${fullDate(m.last)}</td><td><button class="row-action" data-edit-member="${m.id}" ${!canEditMembers?"hidden":""}>Изменить ↗</button></td></tr>`}).join("")||`<tr><td colspan="7" class="empty-state">Игроки не найдены</td></tr>`;
  renderRoleCatalog();
 }
 let matchFilter="all";
@@ -113,6 +113,43 @@ function renderAnalytics(){
 }
 function renderAll(){renderOverview();renderRoster();renderMatches();renderTournaments();renderAnalytics()}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+let supabaseClient=null, currentUser=null, currentProfile=null, canEditMembers=false;
+const roleLabels={commander:"Командир",officer:"Офицер",viewer:"Просмотр"};
+function showAuth(show){const screen=$("#auth-screen");if(screen)screen.hidden=!show;document.querySelector(".app-shell").style.display=show?"none":"";}
+function authMessage(message,success=false){const el=$("#auth-message");if(el){el.textContent=message;el.classList.toggle("success",success)}}
+function configReady(){return window.AEGIS_SUPABASE_URL&&window.AEGIS_SUPABASE_KEY&&!window.AEGIS_SUPABASE_URL.includes("ВСТАВЬТЕ_")&&!window.AEGIS_SUPABASE_KEY.includes("ВСТАВЬТЕ_")}
+function fromDb(m){return {id:m.id,nick:m.nick||"",steam:m.steam_id||"",discord:m.discord_id||"",status:m.status||"active",role:m.combat_role||"Штурмовик",roleProvisional:!!m.role_provisional,leadership:m.senior_role||"",commandRole:m.command_role||"",squad:m.squad||"",last:m.last_activity||"",joined:m.joined_at||"",matches:0}}
+function toDb(m){return {nick:m.nick,steam_id:m.steam||null,discord_id:m.discord||null,status:m.status,combat_role:m.role,role_provisional:!!m.roleProvisional,senior_role:m.leadership||null,command_role:m.commandRole||null,squad:m.squad||null,last_activity:m.last||null,joined_at:m.joined||null}}
+async function loadRemoteMembers(){const {data,error}=await supabaseClient.from("members").select("*").order("nick");if(error)throw error;state.members=(data||[]).map(fromDb);renderRoster();const count=state.members.length;const nav=$("#nav-member-count");if(nav)nav.textContent=count;const conn=$("#connection-label");if(conn)conn.textContent="Синхронизация включена";}
+async function saveRemoteMember(member,id){const payload=toDb(member);let query;if(id)query=supabaseClient.from("members").update(payload).eq("id",id).select().single();else query=supabaseClient.from("members").insert(payload).select().single();const {data,error}=await query;if(error)throw error;const saved=fromDb(data);if(id){const i=state.members.findIndex(x=>x.id===id);if(i>=0)state.members[i]=saved;}else state.members.push(saved);renderRoster();const nav=$("#nav-member-count");if(nav)nav.textContent=state.members.length;}
+async function initializeApp(){
+  if(!configReady()){showAuth(true);authMessage("Сначала заполните config.js значениями Project URL и Publishable key из Supabase.");$("#auth-submit").disabled=true;return;}
+  if(!window.supabase?.createClient){showAuth(true);authMessage("Не удалось загрузить библиотеку Supabase. Обновите страницу или проверьте подключение к CDN.");return;}
+  supabaseClient=window.supabase.createClient(window.AEGIS_SUPABASE_URL,window.AEGIS_SUPABASE_KEY);
+  const {data:{session},error}=await supabaseClient.auth.getSession();if(error){showAuth(true);authMessage("Ошибка авторизации: "+error.message);return;}
+  if(!session){showAuth(true);return;}
+  await finishLogin(session.user);
+}
+async function finishLogin(user){
+  currentUser=user;showAuth(false);
+  try{
+    const {data:profile,error}=await supabaseClient.from("profiles").select("display_name,role").eq("id",user.id).single();
+    if(error)throw error;if(!profile)throw new Error("Для пользователя не создан профиль клана.");
+    currentProfile=profile;canEditMembers=["commander","officer"].includes(profile.role);
+    $("#profile-name").textContent=profile.display_name||user.email||"Участник AEGIS";$("#profile-role").textContent=roleLabels[profile.role]||"Участник";$("#profile-avatar").textContent=initials(profile.display_name||user.email||"A");
+    $("#add-member-btn").hidden=!canEditMembers;
+    await loadRemoteMembers();
+    state.events=[];state.tournaments=[];renderRoster();navigate("roster");
+  }catch(err){showAuth(true);authMessage("Не удалось загрузить профиль или состав: "+(err.message||err));}
+}
+$("#auth-form").addEventListener("submit",async ev=>{ev.preventDefault();if(!supabaseClient){if(configReady())supabaseClient=window.supabase.createClient(window.AEGIS_SUPABASE_URL,window.AEGIS_SUPABASE_KEY);else return;}
+ const button=$("#auth-submit");button.disabled=true;button.textContent="Входим…";authMessage("");
+ try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:$("#auth-email").value.trim(),password:$("#auth-password").value});if(error)throw error;await finishLogin(data.user);if(currentUser)authMessage("Вход выполнен",true);}
+ catch(err){authMessage("Не удалось войти: "+(err.message||err));}
+ finally{button.disabled=false;button.textContent="Войти";}
+});
+$("#sign-out-btn").addEventListener("click",async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentProfile=null;canEditMembers=false;state.members=[];showAuth(true);authMessage("Вы вышли из системы.",true);});
+
 const backdrop=$("#modal-backdrop"),fields=$("#modal-fields"),form=$("#modal-form");let modalMode="",editingId=null;
 function field(name,label,type="text",value="",opts=null,full=false,placeholder=""){let html=`<div class="field ${full?"full-field":""}"><label for="f-${name}">${label}</label>`;if(type==="select"){html+=`<select id="f-${name}" name="${name}">${opts.map(o=>`<option value="${esc(o.value)}" ${String(o.value)===String(value)?"selected":""}>${esc(o.label)}</option>`).join("")}</select>`}else if(type==="textarea"){html+=`<textarea id="f-${name}" name="${name}" placeholder="${esc(placeholder)}">${esc(value)}</textarea>`}else{html+=`<input id="f-${name}" name="${name}" type="${type}" value="${esc(value)}" placeholder="${esc(placeholder)}" ${type==="number"?'min="0"':""}>`}return html+"</div>"}
 function openModal(mode,id=null){
@@ -137,8 +174,8 @@ function openModal(mode,id=null){
 }
 function closeModal(){backdrop.classList.remove("open")}
 function formData(){return Object.fromEntries(new FormData(form).entries())}
-form.addEventListener("submit",ev=>{ev.preventDefault();const d=formData();
- if(modalMode==="member"){if(!d.nick.trim()){toast("Укажите игровой ник");return}const duplicate=state.members.find(m=>m.id!==editingId&&((d.discord.trim()&&m.discord===d.discord.trim())||(d.steam.trim()&&m.steam===d.steam.trim())));if(duplicate){toast("Этот Steam ID или Discord ID уже привязан к игроку: "+duplicate.nick);return}const obj={nick:d.nick.trim(),steam:d.steam.trim(),discord:d.discord.trim(),status:d.status,role:d.role,roleProvisional:d.roleProvisional==="yes",leadership:d.leadership,commandRole:d.commandRole,squad:d.squad.trim(),last:d.last,joined:d.joined,matches:Number(d.matches)||0};if(editingId)Object.assign(state.members.find(m=>m.id===editingId),obj);else state.members.push({id:crypto.randomUUID(),...obj});save();toast(editingId?"Карточка игрока обновлена":"Игрок добавлен");}
+form.addEventListener("submit",async ev=>{ev.preventDefault();const d=formData();
+ if(modalMode==="member"){if(!d.nick.trim()){toast("Укажите игровой ник");return}const duplicate=state.members.find(m=>m.id!==editingId&&((d.discord.trim()&&m.discord===d.discord.trim())||(d.steam.trim()&&m.steam===d.steam.trim())));if(duplicate){toast("Этот Steam ID или Discord ID уже привязан к игроку: "+duplicate.nick);return}const obj={nick:d.nick.trim(),steam:d.steam.trim(),discord:d.discord.trim(),status:d.status,role:d.role,roleProvisional:d.roleProvisional==="yes",leadership:d.leadership,commandRole:d.commandRole,squad:d.squad.trim(),last:d.last,joined:d.joined,matches:Number(d.matches)||0};try{await saveRemoteMember(obj,editingId);toast(editingId?"Карточка игрока обновлена":"Игрок добавлен");}catch(err){toast("Ошибка сохранения: "+(err.message||err));return;}}
  if(modalMode==="event"){if(!d.opponent.trim()){toast("Укажите соперника");return}const obj={opponent:d.opponent.trim(),tournamentId:d.tournamentId||null,date:d.date,time:d.time,map:d.map,format:d.format,organizer:d.organizer,kind:d.kind};if(editingId)Object.assign(state.events.find(x=>x.id===editingId),obj);else state.events.push({id:crypto.randomUUID(),...obj,status:"scheduled",ourScore:null,opponentScore:null,outcome:null,report:"",proof:"",registrations:[],attendance:[]});save();toast(editingId?"Матч обновлён":"Матч создан");}
  if(modalMode==="report"){const e=state.events.find(x=>x.id===editingId);Object.assign(e,{opponent:d.opponent,date:d.date,ourScore:Number(d.ourScore),opponentScore:Number(d.opponentScore),proof:d.proof,report:d.report,attendance:$$('input[name="attendance"]:checked').map(x=>x.value),status:"completed",outcome:Number(d.ourScore)>Number(d.opponentScore)?"win":Number(d.ourScore)<Number(d.opponentScore)?"loss":"draw"});save();toast("Результат и явка сохранены");}
  if(modalMode==="tournament"){if(!d.name.trim()){toast("Укажите название турнира");return}const obj={name:d.name.trim(),organizer:d.organizer,format:d.format,status:d.status,start:d.start,end:d.end};if(editingId)Object.assign(state.tournaments.find(x=>x.id===editingId),obj);else state.tournaments.push({id:crypto.randomUUID(),...obj});save();toast(editingId?"Турнир обновлён":"Турнир создан");}
@@ -164,6 +201,7 @@ function downloadBlob(blob,name){const a=document.createElement("a");a.href=URL.
 $("#export-btn").onclick=exportJSON;$("#settings-export").onclick=exportJSON;
 function exportCSV(){const rows=[["date","opponent","tournament","outcome","our_score","opponent_score","organizer"],...completed().map(e=>[e.date,e.opponent,tournamentName(e.tournamentId),e.outcome,e.ourScore,e.opponentScore,e.organizer])];const csv=rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");downloadBlob(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),"wardogs-match-results.csv")}
 $("#analytics-export").onclick=exportCSV;
-$("#reset-demo").onclick=()=>{if(confirm("Сбросить все изменения и восстановить демонстрационные данные?")){localStorage.removeItem("wardogs-mvp-state-v1");load();renderAll();navigate("roster");toast("Демо-данные восстановлены")}};
+
 $("#analytics-period").onchange=()=>renderAnalytics();
-load();renderAll();navigate("roster");
+// Do not load the demo roster into the live database. The shared roster is loaded after authentication.
+state=structuredClone(seed);state.members=[];renderAll();navigate("roster");initializeApp().catch(err=>{showAuth(true);authMessage("Ошибка запуска: "+(err.message||err));});
