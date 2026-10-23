@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111318">
+<title>AEGIS (AGS) // Command Center</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark">A<span>·</span></div><div><div class="brand-title">AEGIS <span class="brand-tag">AGS</span></div><div class="brand-sub">WARDOGS / COMMAND</div></div></div>
+    <div class="nav-label">УПРАВЛЕНИЕ</div>
+    <nav>
+      <button class="nav-item active" data-page="roster"><span class="nav-icon">♙</span>Состав <span class="nav-count" id="nav-member-count">24</span></button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="connection"><span class="live-dot"></span><div><b>Локальный режим</b><small>Данные на этом устройстве</small></div></div>
+      <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span>Настройки</button>
+      <div class="profile"><div class="avatar commander">C</div><div class="profile-text"><b>Командир</b><small>Демо-профиль</small></div><span class="profile-menu">•••</span></div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="mobile-menu" id="mobile-menu">☰</button>
+      <div class="breadcrumb"><span>AEGIS <em>(AGS)</em></span><i>/</i><b id="crumb">Состав</b></div>
+      <div class="top-actions"><div class="top-status"><span class="live-dot"></span>AEGIS / СОСТАВ</div><button class="icon-btn" id="export-btn" title="Экспорт данных">⇩</button></div>
+    </header>
+    <div class="content">
+      <section class="page" id="page-overview">
+        <div class="page-heading"><div><div class="eyebrow">AEGIS OPERATIONS <span class="eyebrow-line"></span> HQ / 01</div><h1>Центр управления<span class="accent">.</span></h1><p class="muted">Состояние клана и ближайшие задачи старшего состава.</p></div><div class="heading-chip"><span class="live-dot"></span> COMMAND VIEW</div></div>
+        <div class="metric-grid">
+          <div class="metric-card"><div class="metric-top"><span>АКТИВНЫЙ СОСТАВ</span><span class="metric-icon">♙</span></div><div class="metric-value" id="metric-members">24<span class="metric-unit"> / 300</span></div><div class="metric-foot"><span class="positive">● 21 активны</span><span>3 на паузе</span></div><div class="metric-bar"><i style="width:70%"></i></div></div>
+          <div class="metric-card"><div class="metric-top"><span>МАТЧИ В ЭТОМ МЕСЯЦЕ</span><span class="metric-icon">⚔</span></div><div class="metric-value" id="metric-matches">08</div><div class="metric-foot"><span class="positive">5 побед</span><span>3 поражения</span></div><div class="metric-bar"><i style="width:62%"></i></div></div>
+          <div class="metric-card"><div class="metric-top"><span>ПОСЕЩАЕМОСТЬ</span><span class="metric-icon">◷</span></div><div class="metric-value" id="metric-attendance">84<span class="metric-unit">%</span></div><div class="metric-foot"><span class="positive">+6.2%</span><span>к прошлому месяцу</span></div><div class="metric-bar"><i style="width:84%"></i></div></div>
+          <div class="metric-card"><div class="metric-top"><span>WIN RATE</span><span class="metric-icon">↗</span></div><div class="metric-value" id="metric-winrate">62.5<span class="metric-unit">%</span></div><div class="metric-foot"><span>8 матчей завершено</span><span class="neutral">Цель 65%</span></div><div class="metric-bar"><i style="width:62.5%"></i></div></div>
+        </div>
+        <div class="dashboard-grid">
+          <div class="panel upcoming-panel">
+            <div class="panel-header"><div><div class="section-kicker">ОПЕРАЦИОННЫЙ ПЛАН</div><h2>Ближайшие матчи</h2></div><button class="text-btn" data-goto="matches">Все матчи ↗</button></div>
+            <div id="upcoming-list" class="upcoming-list"></div>
+          </div>
+          <div class="panel attention-panel">
+            <div class="panel-header"><div><div class="section-kicker">ТРЕБУЕТ ВНИМАНИЯ</div><h2>Сводка офицера</h2></div><span class="alert-count" id="attention-count">03</span></div>
+            <div class="attention-list" id="attention-list"></div>
+          </div>
+          <div class="panel results-panel">
+            <div class="panel-header"><div><div class="section-kicker">ПОСЛЕДНИЕ РЕЗУЛЬТАТЫ</div><h2>Последние матчи</h2></div><button class="text-btn" data-goto="analytics">Аналитика ↗</button></div>
+            <div id="recent-results" class="results-list"></div>
+          </div>
+          <div class="panel activity-panel">
+            <div class="panel-header"><div><div class="section-kicker">СОСТАВ / АКТИВНОСТЬ</div><h2>Активность игроков</h2></div><span class="tiny-tag">30 ДНЕЙ</span></div>
+            <div class="activity-summary"><div><b id="active-number">21</b><span>активных игроков</span></div><div class="activity-legend"><span><i class="legend-dot green"></i>Активны</span><span><i class="legend-dot amber"></i>Нужна проверка</span></div></div>
+            <div class="bar-chart" id="activity-chart"><div class="bar-col"><i style="height:50%"></i><small>ПН</small></div><div class="bar-col"><i style="height:76%"></i><small>ВТ</small></div><div class="bar-col"><i style="height:61%"></i><small>СР</small></div><div class="bar-col"><i style="height:90%"></i><small>ЧТ</small></div><div class="bar-col"><i style="height:72%"></i><small>ПТ</small></div><div class="bar-col"><i style="height:100%"></i><small>СБ</small></div><div class="bar-col"><i style="height:44%"></i><small>ВС</small></div></div>
+            <div class="panel-footnote">Демо-данные. В реальной версии активность считается по подтверждённой явке.</div>
+          </div>
+        </div>
+        <div class="faction-strip"><div class="faction-heading"><span class="section-kicker">WARDOGS / FACTIONS</span><span class="muted">Три стороны конфликта</span></div><div class="faction-item"><i class="faction-dot lonestar"></i><div><b>LONESTAR</b><small>Синяя фракция</small></div></div><div class="faction-item"><i class="faction-dot valkyra"></i><div><b>VALKYRA</b><small>Красная фракция</small></div></div><div class="faction-item"><i class="faction-dot manticore"></i><div><b>MANTICORE</b><small>Зелёная фракция</small></div></div></div>
+        <div class="demo-note"><span>i</span><div><b>Это интерактивный MVP-прототип.</b> Данные пока хранятся в браузере на этом устройстве. Для общего доступа офицеров подключим базу данных и Discord-авторизацию.</div></div>
+      </section>
+
+      <section class="page active" id="page-roster">
+        <div class="page-heading compact"><div><div class="eyebrow">AEGIS / PERSONNEL DATABASE</div><h1>Состав клана<span class="accent">.</span></h1><p class="muted">Единая база игроков, боевых ролей и назначений старшего состава.</p></div><button class="primary-btn" id="add-member-btn">＋ Добавить игрока</button></div>
+        <div class="role-catalog panel"><div class="role-catalog-head"><div><div class="section-kicker">РОЛЕВАЯ СТРУКТУРА</div><h2>Боевые роли AEGIS</h2></div><span class="role-catalog-note">Нажмите на роль, чтобы отфильтровать состав</span></div><div class="role-grid" id="role-grid"></div></div>
+        <div class="toolbar roster-toolbar"><div class="searchbox"><span>⌕</span><input id="member-search" placeholder="Поиск по нику или Discord ID"></div><select id="member-status-filter"><option value="all">Все статусы</option><option value="active">Активен</option><option value="probation">Испытательный срок</option><option value="inactive">Неактивен</option><option value="reserve">Резерв</option></select><select id="member-role-filter"><option value="all">Все боевые роли</option></select><select id="member-leadership-filter"><option value="all">Все назначения</option><option value="none">Без назначения</option><option value="Старший Штурм">Старший Штурм</option><option value="Старший Летчик">Старший Летчик</option><option value="Старший Медик">Старший Медик</option><option value="Старший Подрывник">Старший Подрывник</option><option value="Старший Строитель">Старший Строитель</option><option value="Старший Танк">Старший Танк</option></select><div class="toolbar-spacer"></div><span class="result-count" id="member-result-count">24 игрока</span></div>
+        <div class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>ИГРОК</th><th>СТАТУС</th><th>БОЕВАЯ РОЛЬ</th><th>НАЗНАЧЕНИЕ</th><th>ОТРЯД</th><th>ПОСЛЕДНЯЯ АКТИВНОСТЬ</th><th></th></tr></thead><tbody id="members-table"></tbody></table></div></div>
+      </section>
+
+      <section class="page" id="page-matches">
+        <div class="page-heading compact"><div><div class="eyebrow">OPERATIONS / SCHEDULE</div><h1>Матчи и события<span class="accent">.</span></h1><p class="muted">Планирование, составы и отчёты по матчам.</p></div><button class="primary-btn" id="create-match-btn">＋ Создать матч</button></div>
+        <div class="match-filters"><button class="filter-pill selected" data-match-filter="all">Все</button><button class="filter-pill" data-match-filter="upcoming">Предстоящие</button><button class="filter-pill" data-match-filter="completed">Завершённые</button></div>
+        <div id="matches-list" class="matches-grid"></div>
+      </section>
+
+      <section class="page" id="page-tournaments">
+        <div class="page-heading compact"><div><div class="eyebrow">COMPETITION / TRACKING</div><h1>Турниры<span class="accent">.</span></h1><p class="muted">Турнирные кампании и сводные результаты.</p></div><button class="primary-btn" id="add-tournament-btn">＋ Новый турнир</button></div>
+        <div id="tournaments-list" class="tournaments-grid"></div>
+      </section>
+
+      <section class="page" id="page-analytics">
+        <div class="page-heading compact"><div><div class="eyebrow">INTELLIGENCE / PERFORMANCE</div><h1>Статистика<span class="accent">.</span></h1><p class="muted">Результаты клана на основе внесённых матчей и явки.</p></div><button class="secondary-btn" id="analytics-export">⇩ Экспорт CSV</button></div>
+        <div class="metric-grid analytics-metrics">
+          <div class="metric-card"><div class="metric-top"><span>ЗАВЕРШЕНО МАТЧЕЙ</span><span class="metric-icon">⚔</span></div><div class="metric-value" id="an-matches">8</div><div class="metric-foot"><span>За выбранный период</span></div></div>
+          <div class="metric-card"><div class="metric-top"><span>ПОБЕДЫ</span><span class="metric-icon">↗</span></div><div class="metric-value" id="an-wins">5</div><div class="metric-foot"><span class="positive">Победы клана</span></div></div>
+          <div class="metric-card"><div class="metric-top"><span>СРЕДНЯЯ ЯВКА</span><span class="metric-icon">◷</span></div><div class="metric-value" id="an-attendance">84%</div><div class="metric-foot"><span>По внесённым отчётам</span></div></div>
+          <div class="metric-card"><div class="metric-top"><span>ИГРОКИ С УЧАСТИЕМ</span><span class="metric-icon">♙</span></div><div class="metric-value" id="an-players">21</div><div class="metric-foot"><span>За последние 30 дней</span></div></div>
+        </div>
+        <div class="panel analytics-panel"><div class="panel-header"><div><div class="section-kicker">MATCH HISTORY</div><h2>История результатов</h2></div><select id="analytics-period"><option value="all">За всё время</option><option value="month">Этот месяц</option></select></div><div class="table-wrap"><table><thead><tr><th>ДАТА</th><th>ТУРНИР</th><th>СОПЕРНИК</th><th>РЕЗУЛЬТАТ</th><th>СЧЁТ</th><th>ОТВЕТСТВЕННЫЙ</th></tr></thead><tbody id="analytics-table"></tbody></table></div></div>
+        <div class="demo-note"><span>i</span><div>Статистика зависит от полноты ручных отчётов. Матчи без подтверждённого результата не включаются в процент побед.</div></div>
+      </section>
+
+      <section class="page" id="page-settings">
+        <div class="page-heading compact"><div><div class="eyebrow">SYSTEM / CONFIGURATION</div><h1>Настройки<span class="accent">.</span></h1><p class="muted">Управление данными прототипа.</p></div></div>
+        <div class="settings-grid">
+          <div class="panel settings-card"><div class="section-kicker">DATA MANAGEMENT</div><h2>Данные прототипа</h2><p class="muted">Сейчас изменения сохраняются в localStorage этого браузера. Они не синхронизируются с другими офицерами.</p><button class="secondary-btn full" id="settings-export">⇩ Скачать резервную копию JSON</button><button class="danger-btn full" id="reset-demo">↻ Сбросить демо-данные</button></div>
+          <div class="panel settings-card"><div class="section-kicker">NEXT RELEASE</div><h2>Подключение сервисов</h2><div class="integration-row"><span class="integration-icon discord">◉</span><div><b>Discord OAuth2</b><small>Вход офицеров и проверка ролей</small></div><span class="status-label planned">Запланировано</span></div><div class="integration-row"><span class="integration-icon db">▤</span><div><b>Supabase PostgreSQL</b><small>Общая база и права доступа</small></div><span class="status-label planned">Запланировано</span></div><div class="integration-row"><span class="integration-icon bot">⌘</span><div><b>Discord-бот</b><small>Регистрация, напоминания, отчёты</small></div><span class="status-label planned">Запланировано</span></div></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true"><div class="modal-head"><div><div class="section-kicker" id="modal-kicker">NEW RECORD</div><h2 id="modal-title">Создать запись</h2></div><button class="close-btn" id="modal-close">×</button></div><form id="modal-form"><div id="modal-fields" class="modal-fields"></div><div class="modal-actions"><button type="button" class="secondary-btn" id="modal-cancel">Отмена</button><button type="submit" class="primary-btn" id="modal-submit">Сохранить</button></div></form></div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
