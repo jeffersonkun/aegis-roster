@@ -89,7 +89,7 @@ function renderRoster(){
  const q=$("#member-search").value.toLowerCase(),f=$("#member-status-filter").value,rf=$("#member-role-filter").value,lf=$("#member-leadership-filter").value;
  const arr=state.members.filter(m=>(m.nick+" "+m.discord+" "+(m.steam||"")+" "+m.squad+" "+memberRole(m)+" "+memberLeadership(m)+" "+(m.commandRole||"")).toLowerCase().includes(q)&&(f==="all"||m.status===f)&&(rf==="all"||memberRole(m)===rf)&&(lf==="all"||(lf==="none"?!memberLeadership(m):memberLeadership(m)===lf))).sort((a,b)=>a.nick.localeCompare(b.nick));
  $("#member-result-count").textContent=`${arr.length} игроков`;
- $("#members-table").innerHTML=arr.map(m=>{const appointments=[m.commandRole,memberLeadership(m)].filter(Boolean).join(" · ");return `<tr><td><div class="player-cell"><div class="player-avatar">${esc(initials(m.nick))}</div><div><b>${esc(m.nick)}</b><small>${m.discord?`Discord ID: ${esc(m.discord)}`:"Discord не привязан"}${m.steam?` · Steam ID: ${esc(m.steam)}`:""}</small></div></div></td><td><span class="status-pill ${statusClass[m.status]||""}">${statusNames[m.status]||m.status}</span></td><td><span class="role-pill ${m.roleProvisional?"provisional":""}">${esc(memberRole(m))}${m.roleProvisional?" · предварительная":""}</span></td><td>${appointments?`<span class="leadership-pill">${esc(appointments)}</span>`:`<span class="muted-cell">—</span>`}</td><td>${esc(squadRows.find(g=>squadAssignments.some(a=>a.member_id===m.id&&a.group_id===g.id))?.name||m.squad||"—")}</td><td>${fullDate(m.last)}</td><td><button class="row-action" data-edit-member="${m.id}" ${!canEditMembers?"hidden":""}>Изменить ↗</button></td></tr>`}).join("")||`<tr><td colspan="7" class="empty-state">Игроки не найдены</td></tr>`;
+ $("#members-table").innerHTML=arr.map(m=>{const appointments=[m.commandRole,memberLeadership(m)].filter(Boolean).join(" · ");return `<tr><td><div class="player-cell"><div class="player-avatar">${esc(initials(m.nick))}</div><div><b>${esc(m.nick)}</b><small>${m.discord?`Discord ID: ${esc(m.discord)}`:"Discord не привязан"}${m.steam?` · Steam ID: ${esc(m.steam)}`:""}</small></div></div></td><td><span class="status-pill ${statusClass[m.status]||""}">${statusNames[m.status]||m.status}</span></td><td><span class="role-pill ${m.roleProvisional?"provisional":""}">${esc(memberRole(m))}${m.roleProvisional?" · предварительная":""}</span>${memberExtraRoles(m.id).length?`<small class="extra-role-note">Доп.: ${esc(memberExtraRoles(m.id).join(", "))}</small>`:""}</td><td>${appointments?`<span class="leadership-pill">${esc(appointments)}</span>`:`<span class="muted-cell">—</span>`}</td><td>${esc(squadRows.find(g=>squadAssignments.some(a=>a.member_id===m.id&&a.group_id===g.id))?.name||m.squad||"—")}</td><td>${fullDate(m.last)}</td><td><button class="row-action" data-edit-member="${m.id}" ${!canEditMembers?"hidden":""}>Изменить ↗</button></td></tr>`}).join("")||`<tr><td colspan="7" class="empty-state">Игроки не найдены</td></tr>`;
  renderRoleCatalog();
 }
 let matchFilter="all";
@@ -114,7 +114,8 @@ function renderAnalytics(){
 function renderAll(){renderOverview();renderRoster();renderMatches();renderTournaments();renderAnalytics()}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 let supabaseClient=null, currentUser=null, currentProfile=null, canEditMembers=false, recoveryMode=false;
-let squadRows=[], squadAssignments=[];
+let squadRows=[], squadAssignments=[], extraRoleRows=[];
+const extraRoleOptions=["Штурмовик","Медик","Разведчик","Подрывник","Строитель","Боевой летчик"];
 const roleLabels={commander:"Командир",officer:"Офицер",viewer:"Просмотр"};
 function showAuth(show){const screen=$("#auth-screen");if(screen)screen.hidden=!show;document.querySelector(".app-shell").style.display=show?"none":"";}
 function authMessage(message,success=false){const el=$("#auth-message");if(el){el.textContent=message;el.classList.toggle("success",success)}}
@@ -122,6 +123,20 @@ function configReady(){return window.AEGIS_SUPABASE_URL&&window.AEGIS_SUPABASE_K
 function fromDb(m){return {id:m.id,nick:m.nick||"",steam:m.steam_id||"",discord:m.discord_id||"",status:m.status||"active",role:m.combat_role||"Штурмовик",roleProvisional:!!m.role_provisional,leadership:m.senior_role||"",commandRole:m.command_role||"",squad:m.squad||"",last:m.last_activity||"",joined:m.joined_at||"",matches:0}}
 function toDb(m){return {nick:m.nick,steam_id:m.steam||null,discord_id:m.discord||null,status:m.status,combat_role:m.role,role_provisional:!!m.roleProvisional,senior_role:m.leadership||null,command_role:m.commandRole||null,squad:m.squad||null,last_activity:m.last||null,joined_at:m.joined||null}}
 async function loadRemoteMembers(){const {data,error}=await supabaseClient.from("members").select("*").order("nick");if(error)throw error;state.members=(data||[]).map(fromDb);renderRoster();const count=state.members.length;const nav=$("#nav-member-count");if(nav)nav.textContent=count;const conn=$("#connection-label");if(conn)conn.textContent="Синхронизация включена";}
+async function loadRemoteExtraRoles(){
+ const {data,error}=await supabaseClient.from("member_extra_roles").select("id,member_id,combat_role");
+ if(error)throw error;extraRoleRows=data||[];renderRoster();
+}
+function memberExtraRoles(memberId){return extraRoleRows.filter(r=>r.member_id===memberId).map(r=>r.combat_role)}
+async function saveRemoteExtraRoles(memberId,selectedRoles){
+ const selected=[...new Set(selectedRoles)].filter(role=>extraRoleOptions.includes(role));
+ const existing=extraRoleRows.filter(r=>r.member_id===memberId);
+ const remove=existing.filter(r=>!selected.includes(r.combat_role)).map(r=>r.id);
+ if(remove.length){const {error}=await supabaseClient.from("member_extra_roles").delete().in("id",remove);if(error)throw error;}
+ const add=selected.filter(role=>!existing.some(r=>r.combat_role===role));
+ if(add.length){const {data,error}=await supabaseClient.from("member_extra_roles").insert(add.map(combat_role=>({member_id:memberId,combat_role}))).select("id,member_id,combat_role");if(error)throw error;extraRoleRows=extraRoleRows.filter(r=>r.member_id!==memberId||selected.includes(r.combat_role)).concat(data||[]);}else{extraRoleRows=extraRoleRows.filter(r=>r.member_id!==memberId||selected.includes(r.combat_role));}
+ renderRoster();
+}
 async function loadRemoteSquads(){
  if(!supabaseClient||!currentUser)return;
  const [groupsRes,assignRes]=await Promise.all([
@@ -155,7 +170,7 @@ async function assignMemberToSquad(memberId,groupId){
  const {error}=await supabaseClient.from("member_group_assignments").upsert({member_id:memberId,group_id:groupId,assigned_by:currentUser.id},{onConflict:"member_id"});if(error)throw error;await loadRemoteSquads();
 }
 async function unassignMemberFromSquad(memberId){const {error}=await supabaseClient.from("member_group_assignments").delete().eq("member_id",memberId);if(error)throw error;await loadRemoteSquads();}
-async function saveRemoteMember(member,id){const payload=toDb(member);let query;if(id)query=supabaseClient.from("members").update(payload).eq("id",id).select().single();else query=supabaseClient.from("members").insert(payload).select().single();const {data,error}=await query;if(error)throw error;const saved=fromDb(data);if(id){const i=state.members.findIndex(x=>x.id===id);if(i>=0)state.members[i]=saved;}else state.members.push(saved);renderRoster();const nav=$("#nav-member-count");if(nav)nav.textContent=state.members.length;}
+async function saveRemoteMember(member,id){const payload=toDb(member);let query;if(id)query=supabaseClient.from("members").update(payload).eq("id",id).select().single();else query=supabaseClient.from("members").insert(payload).select().single();const {data,error}=await query;if(error)throw error;const saved=fromDb(data);if(id){const i=state.members.findIndex(x=>x.id===id);if(i>=0)state.members[i]=saved;}else state.members.push(saved);renderRoster();const nav=$("#nav-member-count");if(nav)nav.textContent=state.members.length;return saved;}
 async function initializeApp(){
   if(!configReady()){showAuth(true);authMessage("Сначала заполните config.js значениями Project URL и Publishable key из Supabase.");$("#auth-submit").disabled=true;return;}
   if(!window.supabase?.createClient){showAuth(true);authMessage("Не удалось загрузить библиотеку Supabase. Обновите страницу или проверьте подключение к CDN.");return;}
@@ -186,6 +201,7 @@ async function finishLogin(user){
     $("#add-member-btn").hidden=!canEditMembers;$("#add-squad-btn").hidden=!canEditMembers;
     await loadRemoteMembers();
     await loadRemoteSquads();
+    await loadRemoteExtraRoles();
     state.events=[];state.tournaments=[];renderRoster();navigate("roster");
   }catch(err){showAuth(true);authMessage("Не удалось загрузить профиль или состав: "+(err.message||err));}
 }
@@ -231,6 +247,7 @@ function openModal(mode,id=null){
  if(mode==="member"){
   $("#modal-kicker").textContent=m?"PERSONNEL / EDIT":"PERSONNEL / NEW";$("#modal-title").textContent=m?"Редактировать игрока":"Добавить игрока";
   fields.innerHTML=field("nick","ИГРОВОЙ НИК","text",m?.nick||"",null,false,"Например, Raven")+field("steam","STEAM ID","text",m?.steam||"",null,false,"Можно добавить позже")+field("discord","DISCORD ID","text",m?.discord||"",null,false,"Можно добавить позже")+field("status","СТАТУС","select",m?.status||"active",Object.entries(statusNames).map(([value,label])=>({value,label})))+field("role","БОЕВАЯ РОЛЬ","select",memberRole(m||{}),roleDefinitions.map(r=>({value:r.name,label:r.name})))+field("roleProvisional","СТАТУС БОЕВОЙ РОЛИ","select",m?.roleProvisional?"yes":"no",[{value:"no",label:"Подтверждена"},{value:"yes",label:"Предварительная — требует подтверждения"}])+field("leadership","СТАРШАЯ БОЕВАЯ РОЛЬ","select",memberLeadership(m||{}),[{value:"",label:"Нет назначения"},...leadershipRoles.map(r=>({value:r,label:r}))])+field("commandRole","НАЗНАЧЕНИЕ В УПРАВЛЕНИИ","select",m?.commandRole||"",[{value:"",label:"Нет назначения"},{value:"Командир",label:"Командир"},{value:"Офицер",label:"Офицер"}])+field("squad","ОТРЯД / ПОДРАЗДЕЛЕНИЕ","text",m?.squad||"",null,false,"Например, Alpha / 1-й отряд")+field("last","ПОСЛЕДНЯЯ АКТИВНОСТЬ","date",m?.last||iso(today))+field("joined","ДАТА ВСТУПЛЕНИЯ","date",m?.joined||iso(today));
+  fields.innerHTML+=`<div class="field full-field"><label>ДОПОЛНИТЕЛЬНЫЕ БОЕВЫЕ РОЛИ ДЛЯ ЗАМЕНЫ</label><div class="extra-role-picker">${extraRoleOptions.filter(role=>role!==memberRole(m||{})).map(role=>`<label class="extra-role-option"><input type="checkbox" name="extra_roles" value="${esc(role)}" ${memberExtraRoles(m?.id).includes(role)?"checked":""}><span>${esc(role)}</span></label>`).join("")}</div><small class="muted">Основная роль задаётся выше. Здесь отметьте роли, на которые боец может заменять других.</small></div>`;
  }else if(mode==="squad"){
   const g=squadRows.find(x=>x.id===id);
   if(!canEditMembers){toast("Недостаточно прав для управления отрядами");return;}
@@ -254,7 +271,7 @@ function openModal(mode,id=null){
 function closeModal(){backdrop.classList.remove("open")}
 function formData(){return Object.fromEntries(new FormData(form).entries())}
 form.addEventListener("submit",async ev=>{ev.preventDefault();const d=formData();
- if(modalMode==="member"){if(!d.nick.trim()){toast("Укажите игровой ник");return}const duplicate=state.members.find(m=>m.id!==editingId&&((d.discord.trim()&&m.discord===d.discord.trim())||(d.steam.trim()&&m.steam===d.steam.trim())));if(duplicate){toast("Этот Steam ID или Discord ID уже привязан к игроку: "+duplicate.nick);return}const obj={nick:d.nick.trim(),steam:d.steam.trim(),discord:d.discord.trim(),status:d.status,role:d.role,roleProvisional:d.roleProvisional==="yes",leadership:d.leadership,commandRole:d.commandRole,squad:d.squad.trim(),last:d.last,joined:d.joined,matches:Number(d.matches)||0};try{await saveRemoteMember(obj,editingId);toast(editingId?"Карточка игрока обновлена":"Игрок добавлен");}catch(err){toast("Ошибка сохранения: "+(err.message||err));return;}}
+ if(modalMode==="member"){if(!d.nick.trim()){toast("Укажите игровой ник");return}const duplicate=state.members.find(m=>m.id!==editingId&&((d.discord.trim()&&m.discord===d.discord.trim())||(d.steam.trim()&&m.steam===d.steam.trim())));if(duplicate){toast("Этот Steam ID или Discord ID уже привязан к игроку: "+duplicate.nick);return}const obj={nick:d.nick.trim(),steam:d.steam.trim(),discord:d.discord.trim(),status:d.status,role:d.role,roleProvisional:d.roleProvisional==="yes",leadership:d.leadership,commandRole:d.commandRole,squad:d.squad.trim(),last:d.last,joined:d.joined,matches:Number(d.matches)||0};try{const saved=await saveRemoteMember(obj,editingId);const selectedRoles=$$('#modal-fields input[name="extra_roles"]:checked').map(input=>input.value);await saveRemoteExtraRoles(saved.id,selectedRoles.filter(role=>role!==d.role));toast(editingId?"Карточка игрока обновлена":"Игрок добавлен");}catch(err){toast("Ошибка сохранения: "+(err.message||err));return;}}
  if(modalMode==="squad"){
   if(!canEditMembers){toast("Недостаточно прав");return;}if(!d.name?.trim()){toast("Укажите название отряда");return;}
   try{await saveRemoteSquad(d,editingId);toast(editingId?"Отряд обновлён":"Отряд создан");}catch(err){toast("Не удалось сохранить отряд: "+(err.message||err));return;}
