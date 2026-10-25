@@ -54,7 +54,7 @@ const tournamentName=id=>state.tournaments.find(t=>t.id===id)?.name||"Клано
 const completed=()=>state.events.filter(e=>e.status==="completed"&&e.outcome);
 const wins=()=>completed().filter(e=>e.outcome==="win").length;
 const losses=()=>completed().filter(e=>e.outcome==="loss").length;
-function navigate(page){$$(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+page));$$(".nav-item[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));$("#crumb").textContent=({overview:"Обзор",roster:"Состав",matches:"Матчи и события",tournaments:"Турниры",analytics:"Статистика",settings:"Настройки"})[page]||page;$("#sidebar").classList.remove("open");window.scrollTo({top:0,behavior:"smooth"});}
+function navigate(page){if(page==="squads")loadRemoteSquads().catch(err=>toast("Не удалось загрузить отряды: "+(err.message||err)));$$(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+page));$$(".nav-item[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));$("#crumb").textContent=({overview:"Обзор",roster:"Состав",squads:"Отряды",matches:"Матчи и события",tournaments:"Турниры",analytics:"Статистика",settings:"Настройки"})[page]||page;$("#sidebar").classList.remove("open");window.scrollTo({top:0,behavior:"smooth"});}
 function renderOverview(){
  const future=state.events.filter(e=>e.status!=="completed"&&e.status!=="cancelled").sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).slice(0,4);
  $("#upcoming-list").innerHTML=future.length?future.map(e=>`<div class="event-row"><div class="event-date"><b>${new Date(e.date+"T12:00:00").getDate()}</b><small>${dateLabel(e.date).split(" ")[0]}</small></div><div class="event-info"><b>${esc(e.opponent)}</b><small>${esc(e.time)} · ${esc(e.map||"Карта не указана")} · ${esc(tournamentName(e.tournamentId))}</small></div><span class="event-state">${e.registrations?.length||0} ЗАПИСАНО</span></div>`).join(""):`<div class="empty-state">Нет запланированных матчей</div>`;
@@ -89,7 +89,7 @@ function renderRoster(){
  const q=$("#member-search").value.toLowerCase(),f=$("#member-status-filter").value,rf=$("#member-role-filter").value,lf=$("#member-leadership-filter").value;
  const arr=state.members.filter(m=>(m.nick+" "+m.discord+" "+(m.steam||"")+" "+m.squad+" "+memberRole(m)+" "+memberLeadership(m)+" "+(m.commandRole||"")).toLowerCase().includes(q)&&(f==="all"||m.status===f)&&(rf==="all"||memberRole(m)===rf)&&(lf==="all"||(lf==="none"?!memberLeadership(m):memberLeadership(m)===lf))).sort((a,b)=>a.nick.localeCompare(b.nick));
  $("#member-result-count").textContent=`${arr.length} игроков`;
- $("#members-table").innerHTML=arr.map(m=>{const appointments=[m.commandRole,memberLeadership(m)].filter(Boolean).join(" · ");return `<tr><td><div class="player-cell"><div class="player-avatar">${esc(initials(m.nick))}</div><div><b>${esc(m.nick)}</b><small>${m.discord?`Discord ID: ${esc(m.discord)}`:"Discord не привязан"}${m.steam?` · Steam ID: ${esc(m.steam)}`:""}</small></div></div></td><td><span class="status-pill ${statusClass[m.status]||""}">${statusNames[m.status]||m.status}</span></td><td><span class="role-pill ${m.roleProvisional?"provisional":""}">${esc(memberRole(m))}${m.roleProvisional?" · предварительная":""}</span></td><td>${appointments?`<span class="leadership-pill">${esc(appointments)}</span>`:`<span class="muted-cell">—</span>`}</td><td>${esc(m.squad||"—")}</td><td>${fullDate(m.last)}</td><td><button class="row-action" data-edit-member="${m.id}" ${!canEditMembers?"hidden":""}>Изменить ↗</button></td></tr>`}).join("")||`<tr><td colspan="7" class="empty-state">Игроки не найдены</td></tr>`;
+ $("#members-table").innerHTML=arr.map(m=>{const appointments=[m.commandRole,memberLeadership(m)].filter(Boolean).join(" · ");return `<tr><td><div class="player-cell"><div class="player-avatar">${esc(initials(m.nick))}</div><div><b>${esc(m.nick)}</b><small>${m.discord?`Discord ID: ${esc(m.discord)}`:"Discord не привязан"}${m.steam?` · Steam ID: ${esc(m.steam)}`:""}</small></div></div></td><td><span class="status-pill ${statusClass[m.status]||""}">${statusNames[m.status]||m.status}</span></td><td><span class="role-pill ${m.roleProvisional?"provisional":""}">${esc(memberRole(m))}${m.roleProvisional?" · предварительная":""}</span></td><td>${appointments?`<span class="leadership-pill">${esc(appointments)}</span>`:`<span class="muted-cell">—</span>`}</td><td>${esc(squadRows.find(g=>squadAssignments.some(a=>a.member_id===m.id&&a.group_id===g.id))?.name||m.squad||"—")}</td><td>${fullDate(m.last)}</td><td><button class="row-action" data-edit-member="${m.id}" ${!canEditMembers?"hidden":""}>Изменить ↗</button></td></tr>`}).join("")||`<tr><td colspan="7" class="empty-state">Игроки не найдены</td></tr>`;
  renderRoleCatalog();
 }
 let matchFilter="all";
@@ -114,6 +114,7 @@ function renderAnalytics(){
 function renderAll(){renderOverview();renderRoster();renderMatches();renderTournaments();renderAnalytics()}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 let supabaseClient=null, currentUser=null, currentProfile=null, canEditMembers=false, recoveryMode=false;
+let squadRows=[], squadAssignments=[];
 const roleLabels={commander:"Командир",officer:"Офицер",viewer:"Просмотр"};
 function showAuth(show){const screen=$("#auth-screen");if(screen)screen.hidden=!show;document.querySelector(".app-shell").style.display=show?"none":"";}
 function authMessage(message,success=false){const el=$("#auth-message");if(el){el.textContent=message;el.classList.toggle("success",success)}}
@@ -121,6 +122,39 @@ function configReady(){return window.AEGIS_SUPABASE_URL&&window.AEGIS_SUPABASE_K
 function fromDb(m){return {id:m.id,nick:m.nick||"",steam:m.steam_id||"",discord:m.discord_id||"",status:m.status||"active",role:m.combat_role||"Штурмовик",roleProvisional:!!m.role_provisional,leadership:m.senior_role||"",commandRole:m.command_role||"",squad:m.squad||"",last:m.last_activity||"",joined:m.joined_at||"",matches:0}}
 function toDb(m){return {nick:m.nick,steam_id:m.steam||null,discord_id:m.discord||null,status:m.status,combat_role:m.role,role_provisional:!!m.roleProvisional,senior_role:m.leadership||null,command_role:m.commandRole||null,squad:m.squad||null,last_activity:m.last||null,joined_at:m.joined||null}}
 async function loadRemoteMembers(){const {data,error}=await supabaseClient.from("members").select("*").order("nick");if(error)throw error;state.members=(data||[]).map(fromDb);renderRoster();const count=state.members.length;const nav=$("#nav-member-count");if(nav)nav.textContent=count;const conn=$("#connection-label");if(conn)conn.textContent="Синхронизация включена";}
+async function loadRemoteSquads(){
+ if(!supabaseClient||!currentUser)return;
+ const [groupsRes,assignRes]=await Promise.all([
+  supabaseClient.from("assault_groups").select("id,name,commander_member_id,description,sort_order,created_at,updated_at").order("sort_order").order("name"),
+  supabaseClient.from("member_group_assignments").select("member_id,group_id,assigned_by,assigned_at")
+ ]);
+ if(groupsRes.error)throw groupsRes.error;if(assignRes.error)throw assignRes.error;
+ squadRows=groupsRes.data||[];squadAssignments=assignRes.data||[];renderSquads();renderRoster();
+}
+function renderSquads(){
+ const list=$("#squad-list"),summary=$("#squad-summary"),count=$("#nav-squad-count");if(!list)return;
+ if(count)count.textContent=squadRows.length;
+ const assigned=new Set(squadAssignments.map(a=>a.member_id));
+ if(summary)summary.innerHTML=`<div class="squad-stat"><b>${squadRows.length}</b><span>отрядов</span></div><div class="squad-stat"><b>${assigned.size}</b><span>бойцов распределено</span></div><div class="squad-stat"><b>${Math.max(0,state.members.length-assigned.size)}</b><span>без отряда</span></div>`;
+ if(!squadRows.length){list.innerHTML='<div class="panel squad-empty">Отрядов пока нет. Нажмите «Создать отряд», чтобы добавить первый.</div>';return;}
+ list.innerHTML=squadRows.map(g=>{
+  const commander=state.members.find(m=>m.id===g.commander_member_id);
+  const members=squadAssignments.filter(a=>a.group_id===g.id).map(a=>state.members.find(m=>m.id===a.member_id)).filter(Boolean).sort((a,b)=>a.nick.localeCompare(b.nick));
+  const available=state.members.filter(m=>!squadAssignments.some(a=>a.member_id===m.id)).sort((a,b)=>a.nick.localeCompare(b.nick));
+  return `<article class="panel squad-card"><div class="squad-card-head"><div><div class="section-kicker">БОЕВОЙ ОТРЯД · ${members.length} БОЙЦОВ</div><h2>${esc(g.name)}</h2><p class="muted">Командир: <b>${esc(commander?.nick||"не назначен")}</b></p></div><button class="secondary-btn squad-edit-btn" data-edit-squad="${g.id}" ${!canEditMembers?"hidden":""}>Изменить</button></div>
+  ${canEditMembers?`<form class="squad-assign-form" data-assign-form="${g.id}"><label for="assign-${g.id}">Добавить бойца</label><div class="squad-assign-row"><select id="assign-${g.id}" name="member_id" required><option value="">Выберите бойца без отряда</option>${available.map(m=>`<option value="${m.id}">${esc(m.nick)} · ${esc(memberRole(m))}</option>`).join("")}</select><button class="primary-btn" type="submit" ${available.length?"":"disabled"}>Добавить</button></div></form>`:""}
+  <div class="squad-member-list">${members.length?members.map(m=>`<div class="squad-member"><div><b>${esc(m.nick)}</b><small>${esc(memberRole(m))}${m.commandRole?` · ${esc(m.commandRole)}`:""}</small></div>${canEditMembers?`<button class="row-action" data-unassign-member="${m.id}" title="Убрать из отряда">Убрать</button>`:""}</div>`).join(""):'<div class="squad-empty-inline">В этом отряде пока нет бойцов.</div>'}</div></article>`;
+ }).join("");
+}
+async function saveRemoteSquad(data,id){
+ const payload={name:data.name.trim(),commander_member_id:data.commander_member_id||null,description:data.description.trim()||null};
+ const query=id?supabaseClient.from("assault_groups").update({...payload,updated_at:new Date().toISOString()}).eq("id",id):supabaseClient.from("assault_groups").insert(payload);
+ const {error}=await query;if(error)throw error;await loadRemoteSquads();
+}
+async function assignMemberToSquad(memberId,groupId){
+ const {error}=await supabaseClient.from("member_group_assignments").upsert({member_id:memberId,group_id:groupId,assigned_by:currentUser.id},{onConflict:"member_id"});if(error)throw error;await loadRemoteSquads();
+}
+async function unassignMemberFromSquad(memberId){const {error}=await supabaseClient.from("member_group_assignments").delete().eq("member_id",memberId);if(error)throw error;await loadRemoteSquads();}
 async function saveRemoteMember(member,id){const payload=toDb(member);let query;if(id)query=supabaseClient.from("members").update(payload).eq("id",id).select().single();else query=supabaseClient.from("members").insert(payload).select().single();const {data,error}=await query;if(error)throw error;const saved=fromDb(data);if(id){const i=state.members.findIndex(x=>x.id===id);if(i>=0)state.members[i]=saved;}else state.members.push(saved);renderRoster();const nav=$("#nav-member-count");if(nav)nav.textContent=state.members.length;}
 async function initializeApp(){
   if(!configReady()){showAuth(true);authMessage("Сначала заполните config.js значениями Project URL и Publishable key из Supabase.");$("#auth-submit").disabled=true;return;}
@@ -149,8 +183,9 @@ async function finishLogin(user){
     if(error)throw error;if(!profile)throw new Error("Для пользователя не создан профиль клана.");
     currentProfile=profile;canEditMembers=["commander","officer"].includes(profile.role);
     $("#profile-name").textContent=profile.display_name||user.email||"Участник AEGIS";$("#profile-role").textContent=roleLabels[profile.role]||"Участник";$("#profile-avatar").textContent=initials(profile.display_name||user.email||"A");
-    $("#add-member-btn").hidden=!canEditMembers;
+    $("#add-member-btn").hidden=!canEditMembers;$("#add-squad-btn").hidden=!canEditMembers;
     await loadRemoteMembers();
+    await loadRemoteSquads();
     state.events=[];state.tournaments=[];renderRoster();navigate("roster");
   }catch(err){showAuth(true);authMessage("Не удалось загрузить профиль или состав: "+(err.message||err));}
 }
@@ -196,6 +231,12 @@ function openModal(mode,id=null){
  if(mode==="member"){
   $("#modal-kicker").textContent=m?"PERSONNEL / EDIT":"PERSONNEL / NEW";$("#modal-title").textContent=m?"Редактировать игрока":"Добавить игрока";
   fields.innerHTML=field("nick","ИГРОВОЙ НИК","text",m?.nick||"",null,false,"Например, Raven")+field("steam","STEAM ID","text",m?.steam||"",null,false,"Можно добавить позже")+field("discord","DISCORD ID","text",m?.discord||"",null,false,"Можно добавить позже")+field("status","СТАТУС","select",m?.status||"active",Object.entries(statusNames).map(([value,label])=>({value,label})))+field("role","БОЕВАЯ РОЛЬ","select",memberRole(m||{}),roleDefinitions.map(r=>({value:r.name,label:r.name})))+field("roleProvisional","СТАТУС БОЕВОЙ РОЛИ","select",m?.roleProvisional?"yes":"no",[{value:"no",label:"Подтверждена"},{value:"yes",label:"Предварительная — требует подтверждения"}])+field("leadership","СТАРШАЯ БОЕВАЯ РОЛЬ","select",memberLeadership(m||{}),[{value:"",label:"Нет назначения"},...leadershipRoles.map(r=>({value:r,label:r}))])+field("commandRole","НАЗНАЧЕНИЕ В УПРАВЛЕНИИ","select",m?.commandRole||"",[{value:"",label:"Нет назначения"},{value:"Командир",label:"Командир"},{value:"Офицер",label:"Офицер"}])+field("squad","ОТРЯД / ПОДРАЗДЕЛЕНИЕ","text",m?.squad||"",null,false,"Например, Alpha / 1-й отряд")+field("last","ПОСЛЕДНЯЯ АКТИВНОСТЬ","date",m?.last||iso(today))+field("joined","ДАТА ВСТУПЛЕНИЯ","date",m?.joined||iso(today));
+ }else if(mode==="squad"){
+  const g=squadRows.find(x=>x.id===id);
+  if(!canEditMembers){toast("Недостаточно прав для управления отрядами");return;}
+  $("#modal-kicker").textContent=g?"UNIT / EDIT":"UNIT / NEW";$("#modal-title").textContent=g?"Изменить отряд":"Создать отряд";
+  const commanderOptions=[{value:"",label:"Не назначен"},...state.members.slice().sort((a,b)=>a.nick.localeCompare(b.nick)).map(m=>({value:m.id,label:m.nick+(m.commandRole?` · ${m.commandRole}`:"")}))];
+  fields.innerHTML=field("name","НАЗВАНИЕ ОТРЯДА","text",g?.name||"",null,true,"Например, Отряд Askeladd")+field("commander_member_id","КОМАНДИР ОТРЯДА","select",g?.commander_member_id||"",commanderOptions,true)+field("description","ОПИСАНИЕ (НЕОБЯЗАТЕЛЬНО)","textarea",g?.description||"",null,true,"Заметка для старшего состава");
  }else if(mode==="event"){
   $("#modal-kicker").textContent=e?"OPERATIONS / EDIT":"OPERATIONS / NEW";$("#modal-title").textContent=e?"Редактировать матч":"Создать матч";
   fields.innerHTML=field("opponent","СОПЕРНИК","text",e?.opponent||"",null,false,"Название команды")+field("tournamentId","ТУРНИР","select",e?.tournamentId||"",[{value:"",label:"Клановый матч"},...state.tournaments.map(x=>({value:x.id,label:x.name}))])+field("date","ДАТА","date",e?.date||offsetDate(2))+field("time","ВРЕМЯ","time",e?.time||"20:00")+field("map","КАРТА","text",e?.map||"",null,false,"Если известна")+field("format","ФОРМАТ","select",e?.format||"5v5",["5v5","10v10","16v16","20v20","Другое"].map(x=>({value:x,label:x})))+field("organizer","ОТВЕТСТВЕННЫЙ","text",e?.organizer||"North",null,false,"Ник офицера")+field("kind","ТИП","select",e?.kind||"Tournament",[{value:"Tournament",label:"Турнир"}, {value:"Scrim",label:"Тренировка"}, {value:"Clan event",label:"Клановое событие"}]);
@@ -214,6 +255,10 @@ function closeModal(){backdrop.classList.remove("open")}
 function formData(){return Object.fromEntries(new FormData(form).entries())}
 form.addEventListener("submit",async ev=>{ev.preventDefault();const d=formData();
  if(modalMode==="member"){if(!d.nick.trim()){toast("Укажите игровой ник");return}const duplicate=state.members.find(m=>m.id!==editingId&&((d.discord.trim()&&m.discord===d.discord.trim())||(d.steam.trim()&&m.steam===d.steam.trim())));if(duplicate){toast("Этот Steam ID или Discord ID уже привязан к игроку: "+duplicate.nick);return}const obj={nick:d.nick.trim(),steam:d.steam.trim(),discord:d.discord.trim(),status:d.status,role:d.role,roleProvisional:d.roleProvisional==="yes",leadership:d.leadership,commandRole:d.commandRole,squad:d.squad.trim(),last:d.last,joined:d.joined,matches:Number(d.matches)||0};try{await saveRemoteMember(obj,editingId);toast(editingId?"Карточка игрока обновлена":"Игрок добавлен");}catch(err){toast("Ошибка сохранения: "+(err.message||err));return;}}
+ if(modalMode==="squad"){
+  if(!canEditMembers){toast("Недостаточно прав");return;}if(!d.name?.trim()){toast("Укажите название отряда");return;}
+  try{await saveRemoteSquad(d,editingId);toast(editingId?"Отряд обновлён":"Отряд создан");}catch(err){toast("Не удалось сохранить отряд: "+(err.message||err));return;}
+ }
  if(modalMode==="event"){if(!d.opponent.trim()){toast("Укажите соперника");return}const obj={opponent:d.opponent.trim(),tournamentId:d.tournamentId||null,date:d.date,time:d.time,map:d.map,format:d.format,organizer:d.organizer,kind:d.kind};if(editingId)Object.assign(state.events.find(x=>x.id===editingId),obj);else state.events.push({id:crypto.randomUUID(),...obj,status:"scheduled",ourScore:null,opponentScore:null,outcome:null,report:"",proof:"",registrations:[],attendance:[]});save();toast(editingId?"Матч обновлён":"Матч создан");}
  if(modalMode==="report"){const e=state.events.find(x=>x.id===editingId);Object.assign(e,{opponent:d.opponent,date:d.date,ourScore:Number(d.ourScore),opponentScore:Number(d.opponentScore),proof:d.proof,report:d.report,attendance:$$('input[name="attendance"]:checked').map(x=>x.value),status:"completed",outcome:Number(d.ourScore)>Number(d.opponentScore)?"win":Number(d.ourScore)<Number(d.opponentScore)?"loss":"draw"});save();toast("Результат и явка сохранены");}
  if(modalMode==="tournament"){if(!d.name.trim()){toast("Укажите название турнира");return}const obj={name:d.name.trim(),organizer:d.organizer,format:d.format,status:d.status,start:d.start,end:d.end};if(editingId)Object.assign(state.tournaments.find(x=>x.id===editingId),obj);else state.tournaments.push({id:crypto.randomUUID(),...obj});save();toast(editingId?"Турнир обновлён":"Турнир создан");}
@@ -223,7 +268,12 @@ $("#modal-close").onclick=closeModal;$("#modal-cancel").onclick=closeModal;backd
 $("#add-member-btn").onclick=()=>openModal("member");
 $("#member-search").addEventListener("input",renderRoster);$("#member-status-filter").addEventListener("change",renderRoster);$("#member-role-filter").addEventListener("change",()=>{activeRoleFilter=$("#member-role-filter").value;renderRoster()});$("#member-leadership-filter").addEventListener("change",renderRoster);
 $$(".nav-item[data-page]").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.page)));
-document.addEventListener("click",e=>{
+$("#add-squad-btn").addEventListener("click",()=>openModal("squad"));
+$("#add-squad-btn").hidden=!canEditMembers;
+document.addEventListener("submit",async e=>{const assignmentForm=e.target.closest("[data-assign-form]");if(!assignmentForm)return;e.preventDefault();if(!canEditMembers)return;const fd=new FormData(assignmentForm);const memberId=fd.get("member_id");if(!memberId)return;const button=assignmentForm.querySelector('button[type="submit"]');button.disabled=true;try{await assignMemberToSquad(memberId,assignmentForm.dataset.assignForm);toast("Боец добавлен в отряд");}catch(err){toast("Не удалось назначить бойца: "+(err.message||err));}finally{button.disabled=false;}});
+document.addEventListener("click",async e=>{
+ const editSquad=e.target.closest("[data-edit-squad]");if(editSquad){openModal("squad",editSquad.dataset.editSquad);return;}
+ const unassign=e.target.closest("[data-unassign-member]");if(unassign){if(!canEditMembers)return;if(!confirm("Убрать бойца из этого отряда? Его карточка и основная роль не изменятся."))return;try{await unassignMemberFromSquad(unassign.dataset.unassignMember);toast("Боец убран из отряда");}catch(err){toast("Не удалось изменить состав: "+(err.message||err));}return;}
  const rolePick=e.target.closest("[data-role-pick]");if(rolePick){activeRoleFilter=activeRoleFilter===rolePick.dataset.rolePick?"all":rolePick.dataset.rolePick;$("#member-role-filter").value=activeRoleFilter;renderRoster()}
  const go=e.target.closest("[data-goto]");if(go)navigate(go.dataset.goto);
  const em=e.target.closest("[data-edit-member]");if(em)openModal("member",em.dataset.editMember);

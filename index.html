@@ -37,6 +37,7 @@
     <div class="nav-label">УПРАВЛЕНИЕ</div>
     <nav>
       <button class="nav-item active" data-page="roster"><span class="nav-icon">♙</span>Состав <span class="nav-count" id="nav-member-count">24</span></button>
+      <button class="nav-item" data-page="squads"><span class="nav-icon">▦</span>Отряды <span class="nav-count" id="nav-squad-count">0</span></button>
     </nav>
     <div class="sidebar-bottom">
       <div class="connection"><span class="live-dot"></span><div><b>Общая база</b><small id="connection-label">Подключение…</small></div></div>
@@ -88,6 +89,12 @@
         <div class="role-catalog panel"><div class="role-catalog-head"><div><div class="section-kicker">РОЛЕВАЯ СТРУКТУРА</div><h2>Боевые роли AEGIS</h2></div><span class="role-catalog-note">Нажмите на роль, чтобы отфильтровать состав</span></div><div class="role-grid" id="role-grid"></div></div>
         <div class="toolbar roster-toolbar"><div class="searchbox"><span>⌕</span><input id="member-search" placeholder="Поиск по нику или Discord ID"></div><select id="member-status-filter"><option value="all">Все статусы</option><option value="active">Активен</option><option value="probation">Испытательный срок</option><option value="inactive">Неактивен</option><option value="reserve">Резерв</option><option value="vacation">Отпуск</option></select><select id="member-role-filter"><option value="all">Все боевые роли</option></select><select id="member-leadership-filter"><option value="all">Все назначения</option><option value="none">Без назначения</option><option value="Старший Штурм">Старший Штурм</option><option value="Старший Летчик">Старший Летчик</option><option value="Старший Медик">Старший Медик</option><option value="Старший Подрывник">Старший Подрывник</option><option value="Старший Строитель">Старший Строитель</option><option value="Старший Танк">Старший Танк</option></select><div class="toolbar-spacer"></div><span class="result-count" id="member-result-count">24 игрока</span></div>
         <div class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>ИГРОК</th><th>СТАТУС</th><th>БОЕВАЯ РОЛЬ</th><th>НАЗНАЧЕНИЕ</th><th>ОТРЯД</th><th>ПОСЛЕДНЯЯ АКТИВНОСТЬ</th><th></th></tr></thead><tbody id="members-table"></tbody></table></div></div>
+      </section>
+
+      <section class="page" id="page-squads">
+        <div class="page-heading compact"><div><div class="eyebrow">AEGIS / UNIT ORGANIZATION</div><h1>Боевые отряды<span class="accent">.</span></h1><p class="muted">Создавайте отряды, назначайте командиров и распределяйте бойцов. Изменения сохраняются в Supabase.</p></div><button class="primary-btn" id="add-squad-btn">＋ Создать отряд</button></div>
+        <div class="squad-summary" id="squad-summary"></div>
+        <div class="squad-grid" id="squad-list"><div class="panel squad-empty">Загрузка отрядов…</div></div>
       </section>
 
       <section class="page" id="page-matches">
