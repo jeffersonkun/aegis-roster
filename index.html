@@ -12,7 +12,7 @@
   <form id="auth-form" class="auth-card">
     <div class="brand-mark auth-mark">A<span>·</span></div>
     <div class="eyebrow">WARDOGS / AEGIS</div>
-    <h1>Вход в состав<span class="accent">.</span></h1>
+    <h1>Вход в состав</h1>
     <p class="muted">Авторизуйтесь, чтобы открыть общую базу игроков AEGIS.</p>
     <label for="auth-email">Электронная почта</label><input id="auth-email" type="email" autocomplete="username" required placeholder="officer@example.com">
     <label for="auth-password">Пароль</label><input id="auth-password" type="password" autocomplete="current-password" required placeholder="Пароль Supabase">
@@ -23,7 +23,7 @@
   <form id="recovery-form" class="auth-card" hidden>
     <div class="brand-mark auth-mark">A<span>·</span></div>
     <div class="eyebrow">WARDOGS / AEGIS</div>
-    <h1>Новый пароль<span class="accent">.</span></h1>
+    <h1>Новый пароль</h1>
     <p class="muted">Придумайте новый пароль для своей учётной записи.</p>
     <label for="new-password">Новый пароль</label><input id="new-password" type="password" autocomplete="new-password" minlength="8" required placeholder="Не менее 8 символов">
     <label for="new-password-confirm">Повторите новый пароль</label><input id="new-password-confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Повторите пароль">
@@ -54,7 +54,7 @@
     </header>
     <div class="content">
       <section class="page" id="page-overview">
-        <div class="page-heading"><div><div class="eyebrow">AEGIS OPERATIONS <span class="eyebrow-line"></span> HQ / 01</div><h1>Центр управления<span class="accent">.</span></h1><p class="muted">Состояние клана и ближайшие задачи старшего состава.</p></div><div class="heading-chip"><span class="live-dot"></span> COMMAND VIEW</div></div>
+        <div class="page-heading"><div><div class="eyebrow">AEGIS OPERATIONS <span class="eyebrow-line"></span> HQ / 01</div><h1>Центр управления</h1><p class="muted">Состояние клана и ближайшие задачи старшего состава.</p></div><div class="heading-chip"><span class="live-dot"></span> COMMAND VIEW</div></div>
         <div class="metric-grid">
           <div class="metric-card"><div class="metric-top"><span>АКТИВНЫЙ СОСТАВ</span><span class="metric-icon">♙</span></div><div class="metric-value" id="metric-members">24<span class="metric-unit"> / 300</span></div><div class="metric-foot"><span class="positive">● 21 активны</span><span>3 на паузе</span></div><div class="metric-bar"><i style="width:70%"></i></div></div>
           <div class="metric-card"><div class="metric-top"><span>МАТЧИ В ЭТОМ МЕСЯЦЕ</span><span class="metric-icon">⚔</span></div><div class="metric-value" id="metric-matches">08</div><div class="metric-foot"><span class="positive">5 побед</span><span>3 поражения</span></div><div class="metric-bar"><i style="width:62%"></i></div></div>
@@ -86,20 +86,20 @@
       </section>
 
       <section class="page active" id="page-roster">
-        <div class="page-heading compact"><div><div class="eyebrow">AEGIS / PERSONNEL DATABASE</div><h1>Состав клана<span class="accent">.</span></h1><p class="muted">Единая база игроков, боевых ролей и назначений старшего состава.</p></div><button class="primary-btn" id="add-member-btn">＋ Добавить игрока</button></div>
+        <div class="page-heading compact"><div><div class="eyebrow">AEGIS / PERSONNEL DATABASE</div><h1>Состав клана</h1><p class="muted">Единая база игроков, боевых ролей и назначений старшего состава.</p></div><button class="primary-btn" id="add-member-btn">＋ Добавить игрока</button></div>
         <div class="role-catalog panel"><div class="role-catalog-head"><div><div class="section-kicker">РОЛЕВАЯ СТРУКТУРА</div><h2>Боевые роли AEGIS</h2></div><span class="role-catalog-note">Нажмите на роль, чтобы отфильтровать состав</span></div><div class="role-grid" id="role-grid"></div></div>
         <div class="toolbar roster-toolbar"><div class="searchbox"><span>⌕</span><input id="member-search" placeholder="Поиск по нику или Discord ID"></div><select id="member-status-filter"><option value="all">Все статусы</option><option value="active">Активен</option><option value="probation">Испытательный срок</option><option value="inactive">Неактивен</option><option value="reserve">Резерв</option><option value="vacation">Отпуск</option></select><select id="member-role-filter"><option value="all">Все боевые роли</option></select><select id="member-leadership-filter"><option value="all">Все назначения</option><option value="none">Без назначения</option><option value="Старший Штурм">Старший Штурм</option><option value="Старший Летчик">Старший Летчик</option><option value="Старший Медик">Старший Медик</option><option value="Старший Подрывник">Старший Подрывник</option><option value="Старший Строитель">Старший Строитель</option><option value="Старший Танк">Старший Танк</option></select><div class="toolbar-spacer"></div><span class="result-count" id="member-result-count">24 игрока</span></div>
         <div class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>ИГРОК</th><th>СТАТУС</th><th>БОЕВАЯ РОЛЬ</th><th>НАЗНАЧЕНИЕ</th><th>ОТРЯД</th><th>ПОСЛЕДНЯЯ АКТИВНОСТЬ</th><th></th></tr></thead><tbody id="members-table"></tbody></table></div></div>
       </section>
 
       <section class="page" id="page-squads">
-        <div class="page-heading compact"><div><div class="eyebrow">AEGIS / UNIT ORGANIZATION</div><h1>Боевые отряды<span class="accent">.</span></h1><p class="muted">Создавайте отряды, назначайте командиров и распределяйте бойцов. Изменения сохраняются в Supabase.</p></div><button class="primary-btn" id="add-squad-btn">＋ Создать отряд</button></div>
+        <div class="page-heading compact"><div><div class="eyebrow">AEGIS / UNIT ORGANIZATION</div><h1>Боевые отряды</h1><p class="muted">Создавайте отряды, назначайте командиров и распределяйте бойцов. Изменения сохраняются в Supabase.</p></div><button class="primary-btn" id="add-squad-btn">＋ Создать отряд</button></div>
         <div class="squad-summary" id="squad-summary"></div>
         <div class="squad-grid" id="squad-list"><div class="panel squad-empty">Загрузка отрядов…</div></div>
       </section>
 
       <section class="page" id="page-games">
-        <div class="page-heading compact"><div><div class="eyebrow">AEGIS / DISCORD GAME SYNC</div><h1>Игры<span class="accent">.</span></h1><p class="muted">Игры и статусы участников из общей базы Supabase. Записи из Discord отображаются здесь автоматически.</p></div><div class="heading-actions"><button class="secondary-btn" id="refresh-games-btn">Обновить</button></div></div>
+        <div class="page-heading compact"><div><div class="eyebrow">AEGIS / DISCORD GAME SYNC</div><h1>Игры</h1><p class="muted">Игры и статусы участников из общей базы Supabase. Записи из Discord отображаются здесь автоматически.</p></div><div class="heading-actions"><button class="secondary-btn" id="refresh-games-btn">Обновить</button></div></div>
         <div class="panel games-create-panel" id="games-create-panel">
           <div class="panel-header"><div><div class="section-kicker">НОВАЯ ИГРА</div><h2>Создать игру</h2></div></div>
           <form id="game-create-form" class="games-create-form">
@@ -116,18 +116,18 @@
       </section>
 
       <section class="page" id="page-matches">
-        <div class="page-heading compact"><div><div class="eyebrow">OPERATIONS / SCHEDULE</div><h1>Матчи и события<span class="accent">.</span></h1><p class="muted">Планирование, составы и отчёты по матчам.</p></div><button class="primary-btn" id="create-match-btn">＋ Создать матч</button></div>
+        <div class="page-heading compact"><div><div class="eyebrow">OPERATIONS / SCHEDULE</div><h1>Матчи и события</h1><p class="muted">Планирование, составы и отчёты по матчам.</p></div><button class="primary-btn" id="create-match-btn">＋ Создать матч</button></div>
         <div class="match-filters"><button class="filter-pill selected" data-match-filter="all">Все</button><button class="filter-pill" data-match-filter="upcoming">Предстоящие</button><button class="filter-pill" data-match-filter="completed">Завершённые</button></div>
         <div id="matches-list" class="matches-grid"></div>
       </section>
 
       <section class="page" id="page-tournaments">
-        <div class="page-heading compact"><div><div class="eyebrow">COMPETITION / TRACKING</div><h1>Турниры<span class="accent">.</span></h1><p class="muted">Турнирные кампании и сводные результаты.</p></div><button class="primary-btn" id="add-tournament-btn">＋ Новый турнир</button></div>
+        <div class="page-heading compact"><div><div class="eyebrow">COMPETITION / TRACKING</div><h1>Турниры</h1><p class="muted">Турнирные кампании и сводные результаты.</p></div><button class="primary-btn" id="add-tournament-btn">＋ Новый турнир</button></div>
         <div id="tournaments-list" class="tournaments-grid"></div>
       </section>
 
       <section class="page" id="page-analytics">
-        <div class="page-heading compact"><div><div class="eyebrow">INTELLIGENCE / PERFORMANCE</div><h1>Статистика<span class="accent">.</span></h1><p class="muted">Результаты клана на основе внесённых матчей и явки.</p></div><button class="secondary-btn" id="analytics-export">⇩ Экспорт CSV</button></div>
+        <div class="page-heading compact"><div><div class="eyebrow">INTELLIGENCE / PERFORMANCE</div><h1>Статистика</h1><p class="muted">Результаты клана на основе внесённых матчей и явки.</p></div><button class="secondary-btn" id="analytics-export">⇩ Экспорт CSV</button></div>
         <div class="metric-grid analytics-metrics">
           <div class="metric-card"><div class="metric-top"><span>ЗАВЕРШЕНО МАТЧЕЙ</span><span class="metric-icon">⚔</span></div><div class="metric-value" id="an-matches">8</div><div class="metric-foot"><span>За выбранный период</span></div></div>
           <div class="metric-card"><div class="metric-top"><span>ПОБЕДЫ</span><span class="metric-icon">↗</span></div><div class="metric-value" id="an-wins">5</div><div class="metric-foot"><span class="positive">Победы клана</span></div></div>
@@ -139,10 +139,10 @@
       </section>
 
       <section class="page" id="page-settings">
-        <div class="page-heading compact"><div><div class="eyebrow">SYSTEM / CONFIGURATION</div><h1>Настройки<span class="accent">.</span></h1><p class="muted">Управление данными прототипа.</p></div></div>
+        <div class="page-heading compact"><div><div class="eyebrow">SYSTEM / CONFIGURATION</div><h1>Настройки</h1><p class="muted">Управление данными прототипа.</p></div></div>
         <div class="settings-grid">
-          <div class="panel settings-card"><div class="section-kicker">DATA MANAGEMENT</div><h2>Данные прототипа</h2><p class="muted">Состав игроков хранится в Supabase PostgreSQL и синхронизируется между авторизованными пользователями. Доступ определяется ролью в профиле клана.</p><button class="secondary-btn full" id="settings-export">⇩ Скачать резервную копию JSON</button></div>
-          <div class="panel settings-card"><div class="section-kicker">NEXT RELEASE</div><h2>Статус интеграций</h2><div class="integration-row"><span class="integration-icon discord">◉</span><div><b>Discord OAuth2</b><small>Вход офицеров и проверка ролей</small></div><span class="status-label planned">Позже</span></div><div class="integration-row"><span class="integration-icon db">▤</span><div><b>Supabase PostgreSQL</b><small>Общая база и права доступа</small></div><span class="status-label planned">Подключено</span></div><div class="integration-row"><span class="integration-icon bot">⌘</span><div><b>Discord-бот</b><small>Регистрация, напоминания, отчёты</small></div><span class="status-label planned">Запланировано</span></div></div>
+          <div class="panel settings-card"><div class="section-kicker">DATA MANAGEMENT</div><h2>Данные прототипа</h2><p class="muted">Состав игроков хранится в Supabase PostgreSQL и синхронизируется между авторизованными пользователями. Доступ определяется ролью в профиле клана.</p><button class="secondary-btn full" id="settings-export">⇩ Скачать резервную копию JSON</button><button class="primary-btn full" id="sync-discord-now" style="margin-top:10px">Принудительно синхронизировать игроков</button><p class="muted" id="sync-discord-status" aria-live="polite">Синхронизация выполняется ботом Discord.</p></div>
+
         </div>
       </section>
     </div>

@@ -157,3 +157,7 @@ button,
   .modal { max-height: calc(100dvh - 24px); }
   .modal-fields { overflow: visible; }
 }
+
+/* Keep the modal close control anchored and prevent it from drifting when the title wraps. */
+.modal-head{align-items:center;gap:16px}.modal-head>div{min-width:0;flex:1}.modal-head .close-btn{flex:0 0 34px;align-self:center;display:grid;place-items:center;margin:0 0 0 auto;padding:0;width:34px;height:34px;min-width:34px;line-height:1;font-size:23px;transform:none}
+.settings-card .full{width:100%;white-space:normal}

@@ -379,6 +379,14 @@ $("#mobile-menu").onclick=()=>$("#sidebar").classList.toggle("open");
 function exportJSON(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});downloadBlob(blob,"wardogs-backup.json")}
 function downloadBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 $("#export-btn").onclick=exportJSON;$("#settings-export").onclick=exportJSON;
+const syncDiscordButton=$("#sync-discord-now");
+if(syncDiscordButton)syncDiscordButton.addEventListener("click",async()=>{
+ if(!supabaseClient||!currentUser||!canEditMembers){toast("Недостаточно прав для синхронизации");return;}
+ const status=$("#sync-discord-status");syncDiscordButton.disabled=true;syncDiscordButton.textContent="Отправляем запрос…";
+ try{const {error}=await supabaseClient.from("discord_sync_requests").insert({requested_by:currentUser.id,status:"pending"});if(error)throw error;status.textContent="Запрос отправлен. Бот выполнит синхронизацию в ближайшую минуту.";toast("Запрос на синхронизацию отправлен");}
+ catch(err){status.textContent="Не удалось отправить запрос: "+(err.message||err);toast("Ошибка запроса синхронизации: "+(err.message||err));}
+ finally{syncDiscordButton.disabled=false;syncDiscordButton.textContent="Принудительно синхронизировать игроков";}
+});
 function exportCSV(){const rows=[["date","opponent","tournament","outcome","our_score","opponent_score","organizer"],...completed().map(e=>[e.date,e.opponent,tournamentName(e.tournamentId),e.outcome,e.ourScore,e.opponentScore,e.organizer])];const csv=rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");downloadBlob(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),"wardogs-match-results.csv")}
 $("#analytics-export").onclick=exportCSV;
 
