@@ -80,7 +80,7 @@ function renderOverview(){
 function daysSince(date){return date?Math.floor((new Date().setHours(0,0,0,0)-new Date(date+"T12:00:00"))/86400000):9999}
 function renderRoleCatalog(){
  const grid=$("#role-grid");
- grid.innerHTML=roleDefinitions.map(r=>`<button class="role-card ${activeRoleFilter===r.name?"selected":""}" data-role-pick="${esc(r.name)}"><span class="role-card-title">${esc(r.name)}</span><span class="role-card-desc">${esc(r.desc)}</span><span class="role-card-count">${state.members.filter(m=>memberRole(m)===r.name).length} игроков</span></button>`).join("");
+ grid.innerHTML=roleDefinitions.map(r=>`<button class="role-card ${activeRoleFilter===r.name?"selected":""}" data-role-pick="${esc(r.name)}"><span class="role-card-title">${esc(r.name)}</span><span class="role-card-count">${state.members.filter(m=>memberRole(m)===r.name).length} игроков</span></button>`).join("");
  const select=$("#member-role-filter");
  if(select.options.length===1) roleDefinitions.forEach(r=>{const o=document.createElement("option");o.value=r.name;o.textContent=r.name;select.appendChild(o)});
 }

@@ -38,7 +38,6 @@ td{font-size:14px;padding:15px 18px}
 .role-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:8px;min-height:142px;padding:15px;background:#1d2026;border:1px solid #373b45;border-radius:7px;color:var(--text);transition:border-color .15s,background .15s}
 .role-card:hover,.role-card.selected{border-color:#c1c5ce;background:#262a32}
 .role-card-title{font-size:15px;font-weight:800}
-.role-card-desc{font-size:12px;line-height:1.55;color:#b8bbc4;flex:1}
 .role-card-count{font-size:11px;color:#e0e2e7;background:#30343d;border-radius:4px;padding:4px 7px}
 .role-pill{display:inline-block;background:#292d35;border:1px solid #444955;color:#e1e3e8;padding:5px 8px;border-radius:4px;font-size:13px}
 .leadership-pill{display:inline-block;background:#34302a;border:1px solid #62513a;color:#e3c18d;padding:5px 8px;border-radius:4px;font-size:12px}
