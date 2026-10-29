@@ -54,7 +54,7 @@ const tournamentName=id=>state.tournaments.find(t=>t.id===id)?.name||"Клано
 const completed=()=>state.events.filter(e=>e.status==="completed"&&e.outcome);
 const wins=()=>completed().filter(e=>e.outcome==="win").length;
 const losses=()=>completed().filter(e=>e.outcome==="loss").length;
-function navigate(page){if(page==="squads")loadRemoteSquads().catch(err=>toast("Не удалось загрузить отряды: "+(err.message||err)));$$(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+page));$$(".nav-item[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));$("#crumb").textContent=({overview:"Обзор",roster:"Состав",squads:"Отряды",matches:"Матчи и события",tournaments:"Турниры",analytics:"Статистика",settings:"Настройки"})[page]||page;$("#sidebar").classList.remove("open");window.scrollTo({top:0,behavior:"smooth"});}
+function navigate(page){if(page==="squads")loadRemoteSquads().catch(err=>toast("Не удалось загрузить отряды: "+(err.message||err)));if(page==="games")loadRemoteGames().catch(err=>toast("Не удалось загрузить игры: "+(err.message||err)));$$(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+page));$$(".nav-item[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));$("#crumb").textContent=({overview:"Обзор",roster:"Состав",squads:"Отряды",games:"Игры",matches:"Матчи и события",tournaments:"Турниры",analytics:"Статистика",settings:"Настройки"})[page]||page;$("#sidebar").classList.remove("open");window.scrollTo({top:0,behavior:"smooth"});}
 function renderOverview(){
  const future=state.events.filter(e=>e.status!=="completed"&&e.status!=="cancelled").sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).slice(0,4);
  $("#upcoming-list").innerHTML=future.length?future.map(e=>`<div class="event-row"><div class="event-date"><b>${new Date(e.date+"T12:00:00").getDate()}</b><small>${dateLabel(e.date).split(" ")[0]}</small></div><div class="event-info"><b>${esc(e.opponent)}</b><small>${esc(e.time)} · ${esc(e.map||"Карта не указана")} · ${esc(tournamentName(e.tournamentId))}</small></div><span class="event-state">${e.registrations?.length||0} ЗАПИСАНО</span></div>`).join(""):`<div class="empty-state">Нет запланированных матчей</div>`;
@@ -171,6 +171,75 @@ async function assignMemberToSquad(memberId,groupId){
 }
 async function unassignMemberFromSquad(memberId){const {error}=await supabaseClient.from("member_group_assignments").delete().eq("member_id",memberId);if(error)throw error;await loadRemoteSquads();}
 async function saveRemoteMember(member,id){const payload=toDb(member);let query;if(id)query=supabaseClient.from("members").update(payload).eq("id",id).select().single();else query=supabaseClient.from("members").insert(payload).select().single();const {data,error}=await query;if(error)throw error;const saved=fromDb(data);if(id){const i=state.members.findIndex(x=>x.id===id);if(i>=0)state.members[i]=saved;}else state.members.push(saved);renderRoster();const nav=$("#nav-member-count");if(nav)nav.textContent=state.members.length;return saved;}
+let remoteGames=[];
+let remoteGameRoster=[];
+const gameStatusLabels={confirmed:"Предстоящая",draft:"Черновик",cancelled:"Отменена"};
+const signupStatusLabels={confirmed:"Участвует",late:"Опоздает",declined:"Не участвует",unsure:"Пока не определился"};
+function gameDateLabel(value){if(!value)return"Дата не указана";const d=new Date(value);return d.toLocaleString("ru-RU",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Moscow"})+" МСК";}
+async function loadRemoteGames(){
+ if(!supabaseClient||!currentUser)return;
+ const [gamesRes,rosterRes]=await Promise.all([
+  supabaseClient.from("games").select("id,title,description,starts_at,status,created_at").order("starts_at",{ascending:true}),
+  supabaseClient.from("game_roster").select("id,game_id,member_id,roster_status,confirmation_status,sort_order").order("sort_order",{ascending:true})
+ ]);
+ if(gamesRes.error)throw gamesRes.error;if(rosterRes.error)throw rosterRes.error;
+ remoteGames=gamesRes.data||[];remoteGameRoster=rosterRes.data||[];
+ const count=$("#nav-games-count");if(count)count.textContent=remoteGames.filter(g=>g.status==="confirmed").length;
+ renderRemoteGames();
+}
+function renderRemoteGames(){
+ const root=$("#games-list");if(!root)return;
+ if(!remoteGames.length){root.innerHTML='<div class="panel squad-empty">Игр пока нет. Создайте игру выше или создайте её через Discord-бота.</div>';return;}
+ root.innerHTML=remoteGames.map(g=>{
+  const rows=remoteGameRoster.filter(r=>r.game_id===g.id);
+  const buckets={confirmed:[],late:[],declined:[],unsure:[]};
+  rows.forEach(r=>{const key=buckets[r.confirmation_status]?r.confirmation_status:"confirmed";const m=state.members.find(x=>x.id===r.member_id);if(m)buckets[key].push({row:r,member:m});});
+  const columns=[['confirmed','Участвуют'],['late','Опоздают'],['declined','Не участвуют'],['unsure','Пока не определились']];
+  return `<article class="panel game-card" data-game-card="${g.id}"><div class="game-card-head"><div><div class="section-kicker">${esc((g.title||'ИГРА').split('-')[0].toUpperCase())} · ${esc(gameStatusLabels[g.status]||g.status||'Статус неизвестен')}</div><h2>${esc(g.title||'Без названия')}</h2><div class="game-meta">Начало: ${esc(gameDateLabel(g.starts_at))}<br>${esc(g.description||'Описание не указано')}<br>${rows.length} записей</div></div><div class="game-card-actions"><button class="secondary-btn" data-refresh-game-roster="${g.id}">Обновить</button>${canEditMembers&&g.status==='confirmed'?`<button class="secondary-btn" data-cancel-game="${g.id}">Отменить игру</button>`:''}</div></div><div class="game-status-columns">${columns.map(([key,label])=>`<section class="game-status-column"><h4>${label} · ${buckets[key].length}</h4>${buckets[key].length?buckets[key].map(({row,member})=>`<div class="game-player"><span>${esc(member.nick)}</span>${canEditMembers?`<select aria-label="Статус ${esc(member.nick)}" data-game-roster-status="${row.id}"><option value="confirmed" ${row.confirmation_status==='confirmed'?'selected':''}>Участвует</option><option value="late" ${row.confirmation_status==='late'?'selected':''}>Опоздает</option><option value="declined" ${row.confirmation_status==='declined'?'selected':''}>Не участвует</option><option value="unsure" ${row.confirmation_status==='unsure'?'selected':''}>Не определился</option><option value="remove">Убрать</option></select>`:''}</div>`).join(''):'<div class="game-empty">Нет участников</div>'}</section>`).join('')}</div><div class="game-roster-tools">${canEditMembers?`<select data-add-game-member="${g.id}"><option value="">Добавить участника из ростера…</option>${state.members.filter(m=>!rows.some(r=>r.member_id===m.id)).sort((a,b)=>a.nick.localeCompare(b.nick)).map(m=>`<option value="${m.id}">${esc(m.nick)}</option>`).join('')}</select>`:''}</div></article>`;
+ }).join('');
+}
+async function createRemoteGame(form){
+ if(!canEditMembers)throw new Error('Создавать игры могут только командир и офицеры.');
+ const fd=new FormData(form),type=String(fd.get('game_type')||'прак'),teamA=String(fd.get('team_a')||'').trim(),teamB=String(fd.get('team_b')||'').trim(),dateValue=String(fd.get('starts_at')||''),requiredCount=Number(fd.get('required_count')||10),description=String(fd.get('description')||'').trim();
+ if(!teamA||!teamB||!dateValue)throw new Error('Заполни команды и дату игры.');
+ const localDate=new Date(`${dateValue}:00+03:00`);if(Number.isNaN(localDate.getTime())||localDate<=new Date())throw new Error('Дата игры должна быть в будущем. Время указывается по Москве.');
+ const dateParts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Moscow',day:'2-digit',month:'2-digit'}).formatToParts(localDate);const day=dateParts.find(p=>p.type==='day')?.value||'00',month=dateParts.find(p=>p.type==='month')?.value||'00';
+ const title=`${type}-${teamA}-${teamB}-${day}${month}`;
+ const {data:game,error}=await supabaseClient.from('games').insert({title,description,starts_at:localDate.toISOString(),status:'confirmed',created_by:currentUser.id}).select('id,title,description,starts_at,status,created_at').single();
+ if(error)throw error;
+ const {error:settingsError}=await supabaseClient.from('game_settings').insert({game_id:game.id,required_count:requiredCount,player_reminder_minutes:60});
+ if(settingsError){await supabaseClient.from('games').delete().eq('id',game.id);throw settingsError;}
+ await loadRemoteGames();
+ toast('Игра сохранена в Supabase. Для автоматического создания канала Discord требуется обновление бота.');
+}
+async function updateGameRosterStatus(rowId,value){
+ if(value==='remove'){const {error}=await supabaseClient.from('game_roster').delete().eq('id',rowId);if(error)throw error;}
+ else {const {error}=await supabaseClient.from('game_roster').update({confirmation_status:value}).eq('id',rowId);if(error)throw error;}
+ await loadRemoteGames();toast('Статус участника обновлён');
+}
+async function addMemberToGame(gameId,memberId){
+ if(!memberId)return;
+ const existing=remoteGameRoster.find(r=>r.game_id===gameId&&r.member_id===memberId);
+ if(existing){toast('Игрок уже записан на эту игру');return;}
+ const {error}=await supabaseClient.from('game_roster').insert({game_id:gameId,member_id:memberId,assigned_role:null,roster_status:'main',confirmation_status:'confirmed',sort_order:9999});if(error)throw error;
+ await loadRemoteGames();toast('Игрок добавлен в состав');
+}
+async function cancelRemoteGame(gameId){
+ if(!canEditMembers||!confirm('Отменить эту игру?'))return;
+ const {error}=await supabaseClient.from('games').update({status:'cancelled'}).eq('id',gameId);if(error)throw error;
+ await loadRemoteGames();toast('Игра отменена в общей базе.');
+}
+$("#game-create-form")?.addEventListener('submit',async e=>{e.preventDefault();const btn=e.submitter;btn.disabled=true;btn.textContent='Создаём…';try{await createRemoteGame(e.currentTarget);e.currentTarget.reset();e.currentTarget.elements.required_count.value=10;}catch(err){toast('Не удалось создать игру: '+(err.message||err));}finally{btn.disabled=false;btn.textContent='Создать игру';}});
+$("#refresh-games-btn")?.addEventListener('click',()=>loadRemoteGames().then(()=>toast('Список игр обновлён')).catch(err=>toast('Ошибка обновления: '+(err.message||err))));
+document.addEventListener('change',async e=>{
+ const statusSelect=e.target.closest('[data-game-roster-status]');if(statusSelect){try{statusSelect.disabled=true;await updateGameRosterStatus(statusSelect.dataset.gameRosterStatus,statusSelect.value);}catch(err){toast('Не удалось изменить статус: '+(err.message||err));}finally{statusSelect.disabled=false;}return;}
+ const addSelect=e.target.closest('[data-add-game-member]');if(addSelect&&addSelect.value){try{addSelect.disabled=true;await addMemberToGame(addSelect.dataset.addGameMember,addSelect.value);}catch(err){toast('Не удалось добавить участника: '+(err.message||err));}finally{addSelect.disabled=false;}}
+});
+document.addEventListener('click',async e=>{
+ const refresh=e.target.closest('[data-refresh-game-roster]');if(refresh){loadRemoteGames().catch(err=>toast('Ошибка обновления: '+(err.message||err)));return;}
+ const cancel=e.target.closest('[data-cancel-game]');if(cancel){try{await cancelRemoteGame(cancel.dataset.cancelGame);}catch(err){toast('Не удалось отменить игру: '+(err.message||err));}}
+});
+
 async function initializeApp(){
   if(!configReady()){showAuth(true);authMessage("Сначала заполните config.js значениями Project URL и Publishable key из Supabase.");$("#auth-submit").disabled=true;return;}
   if(!window.supabase?.createClient){showAuth(true);authMessage("Не удалось загрузить библиотеку Supabase. Обновите страницу или проверьте подключение к CDN.");return;}
@@ -198,10 +267,11 @@ async function finishLogin(user){
     if(error)throw error;if(!profile)throw new Error("Для пользователя не создан профиль клана.");
     currentProfile=profile;canEditMembers=["commander","officer"].includes(profile.role);
     $("#profile-name").textContent=profile.display_name||user.email||"Участник AEGIS";$("#profile-role").textContent=roleLabels[profile.role]||"Участник";$("#profile-avatar").textContent=initials(profile.display_name||user.email||"A");
-    $("#add-member-btn").hidden=!canEditMembers;$("#add-squad-btn").hidden=!canEditMembers;
+    $("#add-member-btn").hidden=!canEditMembers;$("#add-squad-btn").hidden=!canEditMembers;$("#game-create-form").hidden=!canEditMembers;
     await loadRemoteMembers();
     await loadRemoteSquads();
     await loadRemoteExtraRoles();
+    await loadRemoteGames();
     state.events=[];state.tournaments=[];renderRoster();navigate("roster");
   }catch(err){showAuth(true);authMessage("Не удалось загрузить профиль или состав: "+(err.message||err));}
 }

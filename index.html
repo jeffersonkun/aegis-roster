@@ -38,6 +38,7 @@
     <nav>
       <button class="nav-item active" data-page="roster"><span class="nav-icon">♙</span>Состав <span class="nav-count" id="nav-member-count">24</span></button>
       <button class="nav-item" data-page="squads"><span class="nav-icon">▦</span>Отряды <span class="nav-count" id="nav-squad-count">0</span></button>
+      <button class="nav-item" data-page="games"><span class="nav-icon">▤</span>Игры <span class="nav-count" id="nav-games-count">0</span></button>
     </nav>
     <div class="sidebar-bottom">
       <div class="connection"><span class="live-dot"></span><div><b>Общая база</b><small id="connection-label">Подключение…</small></div></div>
@@ -95,6 +96,23 @@
         <div class="page-heading compact"><div><div class="eyebrow">AEGIS / UNIT ORGANIZATION</div><h1>Боевые отряды<span class="accent">.</span></h1><p class="muted">Создавайте отряды, назначайте командиров и распределяйте бойцов. Изменения сохраняются в Supabase.</p></div><button class="primary-btn" id="add-squad-btn">＋ Создать отряд</button></div>
         <div class="squad-summary" id="squad-summary"></div>
         <div class="squad-grid" id="squad-list"><div class="panel squad-empty">Загрузка отрядов…</div></div>
+      </section>
+
+      <section class="page" id="page-games">
+        <div class="page-heading compact"><div><div class="eyebrow">AEGIS / DISCORD GAME SYNC</div><h1>Игры<span class="accent">.</span></h1><p class="muted">Игры и статусы участников из общей базы Supabase. Записи из Discord отображаются здесь автоматически.</p></div><div class="heading-actions"><button class="secondary-btn" id="refresh-games-btn">Обновить</button></div></div>
+        <div class="panel games-create-panel" id="games-create-panel">
+          <div class="panel-header"><div><div class="section-kicker">НОВАЯ ИГРА</div><h2>Создать игру</h2></div></div>
+          <form id="game-create-form" class="games-create-form">
+            <label>Тип игры<select name="game_type" required><option value="прак">Прак</option><option value="комьюнити">Комьюнити</option></select></label>
+            <label>Наша команда<input name="team_a" required maxlength="60" placeholder="Например, AEGIS"></label>
+            <label>Соперник<input name="team_b" required maxlength="60" placeholder="Название соперника"></label>
+            <label>Дата и время<input name="starts_at" type="datetime-local" required></label>
+            <label>Игроков в составе<input name="required_count" type="number" min="1" max="300" value="10" required></label>
+            <label class="games-description-field">Описание<textarea name="description" rows="2" placeholder="Карта, сервер или заметки"></textarea></label>
+            <div class="games-form-actions"><button class="primary-btn" type="submit">Создать игру</button><span class="muted" id="game-create-hint">Игра сохранится в общей базе. Создание канала Discord требует активной интеграции бота.</span></div>
+          </form>
+        </div>
+        <div id="games-list" class="games-list"><div class="panel squad-empty">Загрузка игр…</div></div>
       </section>
 
       <section class="page" id="page-matches">
