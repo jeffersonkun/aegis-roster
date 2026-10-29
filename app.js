@@ -173,17 +173,19 @@ async function unassignMemberFromSquad(memberId){const {error}=await supabaseCli
 async function saveRemoteMember(member,id){const payload=toDb(member);let query;if(id)query=supabaseClient.from("members").update(payload).eq("id",id).select().single();else query=supabaseClient.from("members").insert(payload).select().single();const {data,error}=await query;if(error)throw error;const saved=fromDb(data);if(id){const i=state.members.findIndex(x=>x.id===id);if(i>=0)state.members[i]=saved;}else state.members.push(saved);renderRoster();const nav=$("#nav-member-count");if(nav)nav.textContent=state.members.length;return saved;}
 let remoteGames=[];
 let remoteGameRoster=[];
+let remoteGameSettings=[];
 const gameStatusLabels={confirmed:"Предстоящая",draft:"Черновик",cancelled:"Отменена"};
 const signupStatusLabels={confirmed:"Участвует",late:"Опоздает",declined:"Не участвует",unsure:"Пока не определился"};
 function gameDateLabel(value){if(!value)return"Дата не указана";const d=new Date(value);return d.toLocaleString("ru-RU",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Moscow"})+" МСК";}
 async function loadRemoteGames(){
  if(!supabaseClient||!currentUser)return;
- const [gamesRes,rosterRes]=await Promise.all([
+ const [gamesRes,rosterRes,settingsRes]=await Promise.all([
   supabaseClient.from("games").select("id,title,description,starts_at,status,created_at").order("starts_at",{ascending:true}),
-  supabaseClient.from("game_roster").select("id,game_id,member_id,roster_status,confirmation_status,sort_order").order("sort_order",{ascending:true})
+  supabaseClient.from("game_roster").select("id,game_id,member_id,roster_status,confirmation_status,sort_order").order("sort_order",{ascending:true}),
+  supabaseClient.from("game_settings").select("game_id,signup_channel_id,signup_message_id,required_count,player_reminder_minutes")
  ]);
- if(gamesRes.error)throw gamesRes.error;if(rosterRes.error)throw rosterRes.error;
- remoteGames=gamesRes.data||[];remoteGameRoster=rosterRes.data||[];
+ if(gamesRes.error)throw gamesRes.error;if(rosterRes.error)throw rosterRes.error;if(settingsRes.error)throw settingsRes.error;
+ remoteGames=gamesRes.data||[];remoteGameRoster=rosterRes.data||[];remoteGameSettings=settingsRes.data||[];
  const count=$("#nav-games-count");if(count)count.textContent=remoteGames.filter(g=>g.status==="confirmed").length;
  renderRemoteGames();
 }
@@ -192,10 +194,12 @@ function renderRemoteGames(){
  if(!remoteGames.length){root.innerHTML='<div class="panel squad-empty">Игр пока нет. Создайте игру выше или создайте её через Discord-бота.</div>';return;}
  root.innerHTML=remoteGames.map(g=>{
   const rows=remoteGameRoster.filter(r=>r.game_id===g.id);
+  const gameSettings=remoteGameSettings.find(x=>x.game_id===g.id);
+  const discordSync=gameSettings?.signup_channel_id?"Discord подключён":"Ожидает синхронизации с Discord";
   const buckets={confirmed:[],late:[],declined:[],unsure:[]};
   rows.forEach(r=>{const key=buckets[r.confirmation_status]?r.confirmation_status:"confirmed";const m=state.members.find(x=>x.id===r.member_id);if(m)buckets[key].push({row:r,member:m});});
   const columns=[['confirmed','Участвуют'],['late','Опоздают'],['declined','Не участвуют'],['unsure','Пока не определились']];
-  return `<article class="panel game-card" data-game-card="${g.id}"><div class="game-card-head"><div><div class="section-kicker">${esc((g.title||'ИГРА').split('-')[0].toUpperCase())} · ${esc(gameStatusLabels[g.status]||g.status||'Статус неизвестен')}</div><h2>${esc(g.title||'Без названия')}</h2><div class="game-meta">Начало: ${esc(gameDateLabel(g.starts_at))}<br>${esc(g.description||'Описание не указано')}<br>${rows.length} записей</div></div><div class="game-card-actions"><button class="secondary-btn" data-refresh-game-roster="${g.id}">Обновить</button>${canEditMembers&&g.status==='confirmed'?`<button class="secondary-btn" data-cancel-game="${g.id}">Отменить игру</button>`:''}</div></div><div class="game-status-columns">${columns.map(([key,label])=>`<section class="game-status-column"><h4>${label} · ${buckets[key].length}</h4>${buckets[key].length?buckets[key].map(({row,member})=>`<div class="game-player"><span>${esc(member.nick)}</span>${canEditMembers?`<select aria-label="Статус ${esc(member.nick)}" data-game-roster-status="${row.id}"><option value="confirmed" ${row.confirmation_status==='confirmed'?'selected':''}>Участвует</option><option value="late" ${row.confirmation_status==='late'?'selected':''}>Опоздает</option><option value="declined" ${row.confirmation_status==='declined'?'selected':''}>Не участвует</option><option value="unsure" ${row.confirmation_status==='unsure'?'selected':''}>Не определился</option><option value="remove">Убрать</option></select>`:''}</div>`).join(''):'<div class="game-empty">Нет участников</div>'}</section>`).join('')}</div><div class="game-roster-tools">${canEditMembers?`<select data-add-game-member="${g.id}"><option value="">Добавить участника из ростера…</option>${state.members.filter(m=>!rows.some(r=>r.member_id===m.id)).sort((a,b)=>a.nick.localeCompare(b.nick)).map(m=>`<option value="${m.id}">${esc(m.nick)}</option>`).join('')}</select>`:''}</div></article>`;
+  return `<article class="panel game-card" data-game-card="${g.id}"><div class="game-card-head"><div><div class="section-kicker">${esc((g.title||'ИГРА').split('-')[0].toUpperCase())} · ${esc(gameStatusLabels[g.status]||g.status||'Статус неизвестен')} · ${esc(discordSync)}</div><h2>${esc(g.title||'Без названия')}</h2><div class="game-meta">Начало: ${esc(gameDateLabel(g.starts_at))}<br>${esc(g.description||'Описание не указано')}<br>${rows.length} записей</div></div><div class="game-card-actions"><button class="secondary-btn" data-refresh-game-roster="${g.id}">Обновить</button>${canEditMembers&&g.status==='confirmed'?`<button class="secondary-btn" data-cancel-game="${g.id}">Отменить игру</button>`:''}</div></div><div class="game-status-columns">${columns.map(([key,label])=>`<section class="game-status-column"><h4>${label} · ${buckets[key].length}</h4>${buckets[key].length?buckets[key].map(({row,member})=>`<div class="game-player"><span>${esc(member.nick)}</span>${canEditMembers?`<select aria-label="Статус ${esc(member.nick)}" data-game-roster-status="${row.id}"><option value="confirmed" ${row.confirmation_status==='confirmed'?'selected':''}>Участвует</option><option value="late" ${row.confirmation_status==='late'?'selected':''}>Опоздает</option><option value="declined" ${row.confirmation_status==='declined'?'selected':''}>Не участвует</option><option value="unsure" ${row.confirmation_status==='unsure'?'selected':''}>Не определился</option><option value="remove">Убрать</option></select>`:''}</div>`).join(''):'<div class="game-empty">Нет участников</div>'}</section>`).join('')}</div><div class="game-roster-tools">${canEditMembers?`<select data-add-game-member="${g.id}"><option value="">Добавить участника из ростера…</option>${state.members.filter(m=>!rows.some(r=>r.member_id===m.id)).sort((a,b)=>a.nick.localeCompare(b.nick)).map(m=>`<option value="${m.id}">${esc(m.nick)}</option>`).join('')}</select>`:''}</div></article>`;
  }).join('');
 }
 async function createRemoteGame(form){
@@ -210,7 +214,7 @@ async function createRemoteGame(form){
  const {error:settingsError}=await supabaseClient.from('game_settings').insert({game_id:game.id,required_count:requiredCount,player_reminder_minutes:60});
  if(settingsError){await supabaseClient.from('games').delete().eq('id',game.id);throw settingsError;}
  await loadRemoteGames();
- toast('Игра сохранена в Supabase. Для автоматического создания канала Discord требуется обновление бота.');
+ toast('Игра сохранена. Бот создаст канал и панель записи в Discord в течение минуты, если он запущен.');
 }
 async function updateGameRosterStatus(rowId,value){
  if(value==='remove'){const {error}=await supabaseClient.from('game_roster').delete().eq('id',rowId);if(error)throw error;}
