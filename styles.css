@@ -87,3 +87,74 @@ select option{white-space:normal;}
 .game-player>span{min-width:0;overflow-wrap:anywhere;flex:1 1 90px;}
 .game-player select{flex:0 1 160px;width:auto;max-width:100%;}
 @media(max-width:600px){.modal-fields{grid-template-columns:minmax(0,1fr);}.field.full-field{grid-column:auto;}.game-player select{flex:1 1 100%;width:100%;}}
+
+/* Global fix: prevent form control text from being clipped vertically.
+   Earlier rules combined 38px fixed heights with 1.5 line-height and padding,
+   leaving too little room for the text baseline. */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea,
+button,
+.auth-card input,
+.searchbox input {
+  line-height: 1.45 !important;
+}
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  box-sizing: border-box;
+  min-height: 44px;
+  height: auto;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  vertical-align: middle;
+}
+select {
+  padding-right: 32px;
+  white-space: normal;
+}
+textarea {
+  min-height: 96px;
+  height: auto;
+  resize: vertical;
+}
+button,
+.primary-btn,
+.secondary-btn,
+.danger-btn,
+.small-btn,
+.filter-pill,
+.nav-item {
+  min-height: 40px;
+  height: auto;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+.close-btn,
+.icon-btn,
+.mobile-menu {
+  min-height: 34px;
+  height: 34px;
+  padding: 0;
+}
+.searchbox {
+  min-height: 44px;
+  height: auto;
+}
+.searchbox input {
+  min-height: 0;
+  height: auto;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.field label,
+.games-create-form label,
+.auth-card label {
+  line-height: 1.5;
+  height: auto;
+  overflow: visible;
+}
+@media (max-width: 600px) {
+  .modal { max-height: calc(100dvh - 24px); }
+  .modal-fields { overflow: visible; }
+}
