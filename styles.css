@@ -73,3 +73,17 @@ td{font-size:14px;padding:15px 18px}
 .games-create-panel{padding:22px;margin-bottom:22px}.games-create-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.games-create-form label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted,#9ca3af)}.games-create-form input,.games-create-form select,.games-create-form textarea{width:100%;border:1px solid var(--line,#333);border-radius:9px;background:var(--panel-2,#17191c);color:var(--text,#f3f4f6);padding:11px;font:inherit}.games-description-field{grid-column:span 2}.games-form-actions{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap}.games-form-actions .muted{font-size:12px}.games-list{display:grid;gap:16px}.game-card{padding:20px}.game-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.game-card h2{margin:5px 0 8px}.game-meta{color:var(--muted,#9ca3af);font-size:13px;line-height:1.7}.game-status-columns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}.game-status-column{border:1px solid var(--line,#333);border-radius:10px;padding:12px;min-width:0}.game-status-column h4{font-size:12px;margin:0 0 10px;color:var(--muted,#9ca3af)}.game-player{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line,#333);font-size:13px}.game-player select{max-width:135px;min-width:0;background:var(--panel-2,#17191c);color:var(--text,#f3f4f6);border:1px solid var(--line,#333);border-radius:7px;padding:5px;font-size:11px}.game-empty{color:var(--muted,#9ca3af);font-size:12px}.game-card-actions{display:flex;gap:8px;align-items:center}.game-card-actions button{white-space:nowrap}.game-roster-tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.game-roster-tools select{background:var(--panel-2,#17191c);color:var(--text,#f3f4f6);border:1px solid var(--line,#333);border-radius:8px;padding:8px}
 @media(max-width:900px){.games-create-form{grid-template-columns:repeat(2,minmax(0,1fr))}.game-status-columns{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.games-create-form,.game-status-columns{grid-template-columns:1fr}.games-description-field{grid-column:auto}.game-card-head{flex-direction:column}}
+
+
+/* Global form sizing: prevent clipped select/input text across the entire site. */
+select,input,textarea{box-sizing:border-box;min-width:0;max-width:100%;}
+select{width:100%;text-overflow:clip;}
+select option{white-space:normal;}
+.field,.games-create-form label,.game-status-column,.game-card,.panel{min-width:0;}
+.field input,.field select,.field textarea,.games-create-form input,.games-create-form select,.games-create-form textarea{min-width:0;width:100%;max-width:100%;}
+.modal{width:min(680px,calc(100vw - 24px));max-width:100%;}
+.modal-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
+.game-player{min-width:0;flex-wrap:wrap;}
+.game-player>span{min-width:0;overflow-wrap:anywhere;flex:1 1 90px;}
+.game-player select{flex:0 1 160px;width:auto;max-width:100%;}
+@media(max-width:600px){.modal-fields{grid-template-columns:minmax(0,1fr);}.field.full-field{grid-column:auto;}.game-player select{flex:1 1 100%;width:100%;}}

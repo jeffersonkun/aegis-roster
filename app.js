@@ -208,7 +208,8 @@ async function createRemoteGame(form){
  if(!teamA||!teamB||!dateValue)throw new Error('Заполни команды и дату игры.');
  const localDate=new Date(`${dateValue}:00+03:00`);if(Number.isNaN(localDate.getTime())||localDate<=new Date())throw new Error('Дата игры должна быть в будущем. Время указывается по Москве.');
  const dateParts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Moscow',day:'2-digit',month:'2-digit'}).formatToParts(localDate);const day=dateParts.find(p=>p.type==='day')?.value||'00',month=dateParts.find(p=>p.type==='month')?.value||'00';
- const title=`${type}-${teamA}-${teamB}-${day}${month}`;
+ const displayType=type==='прак'?'Прак':'Комьюнити';
+ const title=`${displayType}-${teamA}-${teamB}-${day}${month}`;
  const {data:game,error}=await supabaseClient.from('games').insert({title,description,starts_at:localDate.toISOString(),status:'confirmed',created_by:currentUser.id}).select('id,title,description,starts_at,status,created_at').single();
  if(error)throw error;
  const {error:settingsError}=await supabaseClient.from('game_settings').insert({game_id:game.id,required_count:requiredCount,player_reminder_minutes:60});
